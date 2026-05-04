@@ -1,0 +1,21 @@
+[Script Info]
+ScriptType: v4.00+
+
+[V4+ Styles]
+Format: Name,Fontname,Fontsize,PrimaryColour,OutlineColour,BorderStyle,Outline,Shadow,Alignment,MarginL,MarginR,MarginV
+Style: Default,Arial,70,&H00FFFF00,&H00000000,3,3,0,2,20,20,150
+
+[Events]
+Format: Start,End,Style,Text
+Dialogue: 0:00:00.00,0:00:00.34,Default,{\b1}I
+Dialogue: 0:00:00.34,0:00:00.68,Default,{\b1}DIDN’T
+Dialogue: 0:00:00.68,0:00:01.02,Default,{\b1}EXPECT
+Dialogue: 0:00:01.02,0:00:01.36,Default,{\b1}THIS...
+Dialogue: 0:00:01.36,0:00:01.70,Default,{\b1}SHE
+Dialogue: 0:00:01.70,0:00:02.04,Default,{\b1}CALLED
+Dialogue: 0:00:02.04,0:00:02.38,Default,{\b1}ME
+Dialogue: 0:00:02.38,0:00:02.72,Default,{\b1}AT
+Dialogue: 0:00:02.72,0:00:03.06,Default,{\b1}2AM
+Dialogue: 0:00:03.06,0:00:03.40,Default,{\b1}AND
+Dialogue: 0:00:03.40,0:00:03.74,Default,{\b1}I
+Dialogue: 0:00:03.74,0:00:04.08,Default,{\b1}FROZE
