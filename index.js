@@ -5,14 +5,14 @@ const TelegramBot = require("node-telegram-bot-api");
 const { createVoice } = require("./createVoice");
 const { uploadVideo } = require("./upload");
 
-// ===== TELEGRAM (notify only) =====
+// TELEGRAM (notify only)
 const bot = new TelegramBot(process.env.BOT_TOKEN, { polling: false });
 const CHAT_ID = process.env.CHAT_ID;
 
-async function notify(text) {
+async function notify(msg) {
   try {
     if (CHAT_ID) {
-      await bot.sendMessage(CHAT_ID, text);
+      await bot.sendMessage(CHAT_ID, msg);
     }
   } catch (e) {
     console.log("notify error:", e.message);
@@ -21,12 +21,12 @@ async function notify(text) {
 
 const ffmpegPath = "ffmpeg";
 
-// ===== folders =====
+// folders
 ["voice", "output", "temp", "images"].forEach(d => {
   if (!fs.existsSync(d)) fs.mkdirSync(d);
 });
 
-// ===== google auth =====
+// google auth
 if (process.env.GOOGLE_CREDENTIALS) {
   fs.writeFileSync("credentials.json", process.env.GOOGLE_CREDENTIALS);
 }
@@ -34,7 +34,7 @@ if (process.env.GOOGLE_TOKEN) {
   fs.writeFileSync("token.json", process.env.GOOGLE_TOKEN);
 }
 
-// ===== simple script =====
+// simple script generator
 function generateScript() {
   const list = [
     "You won’t believe this money fact",
@@ -46,7 +46,7 @@ function generateScript() {
   return pick + ". Watch till the end.";
 }
 
-// ===== pick local image =====
+// random image
 function getImage() {
   const files = fs.readdirSync("images").filter(f => f.endsWith(".jpg") || f.endsWith(".png"));
   if (files.length === 0) throw new Error("no images");
@@ -54,12 +54,12 @@ function getImage() {
   return "images/" + files[i];
 }
 
-// ===== audio check =====
+// audio check
 function okAudio(f) {
   try { return fs.statSync(f).size > 5000; } catch { return false; }
 }
 
-// ===== video =====
+// video
 function createVideo(img, aud, out) {
   return new Promise((res, rej) => {
     const cmd = `"${ffmpegPath}" -y -loop 1 -i "${img}" -i "${aud}" -vf "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,zoompan=z='min(zoom+0.002,1.15)':d=125:s=1080x1920" -c:v libx264 -preset veryfast -tune stillimage -shortest -pix_fmt yuv420p -r 30 -movflags +faststart "${out}"`;
@@ -70,7 +70,7 @@ function createVideo(img, aud, out) {
   });
 }
 
-// ===== title/hashtags =====
+// title
 function cleanTitle(t) {
   return t.replace(/[#@]/g, "").replace(/\n/g, " ").trim().substring(0, 70);
 }
@@ -83,9 +83,11 @@ function tags(t) {
   return base.join(" ");
 }
 
-// ===== run once =====
+// MAIN
 async function run() {
   try {
+    console.log("AUTOPILOT RUNNING");
+
     const script = generateScript();
 
     const voice = await createVoice(script);
@@ -95,6 +97,7 @@ async function run() {
 
     const out = "output/video_" + Date.now() + ".mp4";
     await createVideo(img, voice, out);
+
     if (!fs.existsSync(out)) throw new Error("video missing");
 
     const h = tags(script);
@@ -104,7 +107,7 @@ async function run() {
     await uploadVideo(out, title, desc);
 
     await notify("OK uploaded");
-    console.log("OK");
+    console.log("DONE");
   } catch (e) {
     console.log("ERR:", e.message);
     await notify("ERROR: " + e.message);
