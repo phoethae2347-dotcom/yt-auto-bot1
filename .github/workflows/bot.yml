@@ -1,0 +1,32 @@
+name: Telegram Cloud Bot
+
+on:
+  workflow_dispatch:
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+
+      - name: Install FFmpeg + Python
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg python3 python3-pip
+
+      - name: Install Python Packages
+        run: |
+          pip3 install -r requirements.txt
+
+      - name: Install Node Packages
+        run: |
+          npm install
+
+      - name: Run Bot
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+        run: |
+          node index.js
