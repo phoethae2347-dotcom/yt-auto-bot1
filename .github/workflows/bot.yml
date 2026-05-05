@@ -6,7 +6,7 @@ on:
 jobs:
   run-bot:
     runs-on: ubuntu-latest
-    timeout-minutes: 360
+    timeout-minutes: 350
 
     steps:
       - name: Checkout Repo
@@ -24,6 +24,19 @@ jobs:
       - name: Install Node Packages
         run: |
           npm install
+
+      - name: Start Next Loop Trigger In Background
+        env:
+          GH_PAT: ${{ secrets.GH_PAT }}
+        run: |
+          nohup bash -c '
+            sleep 20400
+            curl -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: token '$GH_PAT'" \
+            https://api.github.com/repos/phoethae2347-dotcom/yt-auto-bot1/actions/workflows/bot.yml/dispatches \
+            -d "{\"ref\":\"main\"}"
+          ' >/dev/null 2>&1 &
 
       - name: Run Telegram AI Bot
         env:
