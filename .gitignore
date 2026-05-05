@@ -1,4 +1,6 @@
 node_modules
 .env
-voice
 output
+voice
+token.json
+credentials.json
