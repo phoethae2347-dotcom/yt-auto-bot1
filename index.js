@@ -1,19 +1,32 @@
 require("dotenv").config();
-const TelegramBot = require("node-telegram-bot-api");
-const { exec } = require("child_process");
 const fs = require("fs");
+const { exec } = require("child_process");
+const TelegramBot = require("node-telegram-bot-api");
 const { createVoice } = require("./createVoice");
 const { uploadVideo } = require("./upload");
 
-const bot = new TelegramBot(process.env.BOT_TOKEN, { polling: true });
+// ===== TELEGRAM (notify only) =====
+const bot = new TelegramBot(process.env.BOT_TOKEN, { polling: false });
+const CHAT_ID = process.env.CHAT_ID;
+
+async function notify(text) {
+  try {
+    if (CHAT_ID) {
+      await bot.sendMessage(CHAT_ID, text);
+    }
+  } catch (e) {
+    console.log("notify error:", e.message);
+  }
+}
+
 const ffmpegPath = "ffmpeg";
 
-// ===== FOLDERS =====
-["voice", "output", "temp", "images"].forEach(dir => {
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir);
+// ===== folders =====
+["voice", "output", "temp", "images"].forEach(d => {
+  if (!fs.existsSync(d)) fs.mkdirSync(d);
 });
 
-// ===== GOOGLE AUTH =====
+// ===== google auth =====
 if (process.env.GOOGLE_CREDENTIALS) {
   fs.writeFileSync("credentials.json", process.env.GOOGLE_CREDENTIALS);
 }
@@ -21,117 +34,82 @@ if (process.env.GOOGLE_TOKEN) {
   fs.writeFileSync("token.json", process.env.GOOGLE_TOKEN);
 }
 
-// ===== IMAGE ROTATE =====
-function getNextImage() {
-  const files = fs.readdirSync("images").filter(f => f.endsWith(".jpg"));
-
-  if (files.length === 0) throw new Error("No jpg images");
-
-  let index = 0;
-  if (fs.existsSync("index.txt")) {
-    index = parseInt(fs.readFileSync("index.txt")) || 0;
-  }
-
-  const file = files[index % files.length];
-  fs.writeFileSync("index.txt", (index + 1).toString());
-
-  return `images/${file}`;
+// ===== simple script =====
+function generateScript() {
+  const list = [
+    "You won’t believe this money fact",
+    "This success habit works instantly",
+    "A shocking truth most people ignore",
+    "One mindset trick that changes everything"
+  ];
+  const pick = list[Math.floor(Math.random() * list.length)];
+  return pick + ". Watch till the end.";
 }
 
-// ===== AUDIO CHECK =====
-function isValidAudio(file) {
-  try {
-    const size = fs.statSync(file).size;
-    return size > 5000;
-  } catch {
-    return false;
-  }
+// ===== pick local image =====
+function getImage() {
+  const files = fs.readdirSync("images").filter(f => f.endsWith(".jpg") || f.endsWith(".png"));
+  if (files.length === 0) throw new Error("no images");
+  const i = Math.floor(Math.random() * files.length);
+  return "images/" + files[i];
 }
 
-// ===== VIDEO CREATE =====
-function createVideo(imagePath, audioPath, outputPath) {
-  return new Promise((resolve, reject) => {
+// ===== audio check =====
+function okAudio(f) {
+  try { return fs.statSync(f).size > 5000; } catch { return false; }
+}
 
-    const command = `"${ffmpegPath}" -y -loop 1 -i "${imagePath}" -i "${audioPath}" -vf "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,zoompan=z='min(zoom+0.002,1.15)':d=125:s=1080x1920" -c:v libx264 -preset veryfast -tune stillimage -shortest -pix_fmt yuv420p -r 30 -movflags +faststart "${outputPath}"`;
-
-    exec(command, (error, stdout, stderr) => {
-      if (error) {
-        console.log(stderr);
-        reject(new Error("FFmpeg failed"));
-      } else {
-        resolve();
-      }
+// ===== video =====
+function createVideo(img, aud, out) {
+  return new Promise((res, rej) => {
+    const cmd = `"${ffmpegPath}" -y -loop 1 -i "${img}" -i "${aud}" -vf "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,zoompan=z='min(zoom+0.002,1.15)':d=125:s=1080x1920" -c:v libx264 -preset veryfast -tune stillimage -shortest -pix_fmt yuv420p -r 30 -movflags +faststart "${out}"`;
+    exec(cmd, (e, so, se) => {
+      if (e) { console.log(se); rej(new Error("ffmpeg failed")); }
+      else res();
     });
   });
 }
 
-// ===== SMART TITLE CLEAN =====
-function cleanTitle(text) {
-  return text
-    .replace(/[#@]/g, "")   // remove unwanted symbols
-    .replace(/\n/g, " ")
-    .trim()
-    .substring(0, 70);
+// ===== title/hashtags =====
+function cleanTitle(t) {
+  return t.replace(/[#@]/g, "").replace(/\n/g, " ").trim().substring(0, 70);
 }
-
-// ===== HASHTAG BUILDER =====
-function buildHashtags(text) {
+function tags(t) {
   const base = ["#shorts", "#viral", "#fyp"];
-
-  if (text.toLowerCase().includes("money")) base.push("#money");
-  if (text.toLowerCase().includes("success")) base.push("#success");
-  if (text.toLowerCase().includes("fact")) base.push("#facts");
-
+  const x = t.toLowerCase();
+  if (x.includes("money")) base.push("#money");
+  if (x.includes("success")) base.push("#success");
+  if (x.includes("truth")) base.push("#facts");
   return base.join(" ");
 }
 
-// ===== MAIN =====
-bot.on("message", async (msg) => {
-  const chatId = msg.chat.id;
-  const script = msg.text;
-
-  if (!script) return;
-
+// ===== run once =====
+async function run() {
   try {
-    await bot.sendMessage(chatId, "🎙 Creating AI voice...");
+    const script = generateScript();
 
-    let voiceFile = await createVoice(script);
+    const voice = await createVoice(script);
+    if (!okAudio(voice)) throw new Error("audio bad");
 
-    if (!isValidAudio(voiceFile)) {
-      throw new Error("Voice file corrupted");
-    }
+    const img = getImage();
 
-    await bot.sendMessage(chatId, "🎬 Creating video...");
+    const out = "output/video_" + Date.now() + ".mp4";
+    await createVideo(img, voice, out);
+    if (!fs.existsSync(out)) throw new Error("video missing");
 
-    const imagePath = getNextImage();
-    const videoFile = `output/video_${Date.now()}.mp4`;
+    const h = tags(script);
+    const title = cleanTitle(script) + " " + h;
+    const desc = script + "\n\n" + h;
 
-    await createVideo(imagePath, voiceFile, videoFile);
+    await uploadVideo(out, title, desc);
 
-    if (!fs.existsSync(videoFile)) {
-      throw new Error("Video not created");
-    }
-
-    await bot.sendMessage(chatId, "☁ Uploading to YouTube...");
-
-    // ===== BUILD FINAL TITLE + DESCRIPTION =====
-    const title = cleanTitle(script);
-    const hashtags = buildHashtags(script);
-
-    const finalTitle = `${title} ${hashtags}`;
-    const finalDescription = `${script}\n\n${hashtags}`;
-
-    await uploadVideo(
-      videoFile,
-      finalTitle,
-      finalDescription
-    );
-
-    await bot.sendVideo(chatId, fs.createReadStream(videoFile));
-    await bot.sendMessage(chatId, "✅ Uploaded Successfully");
-
-  } catch (err) {
-    console.log("ERROR:", err);
-    await bot.sendMessage(chatId, "❌ ERROR: " + err.message);
+    await notify("OK uploaded");
+    console.log("OK");
+  } catch (e) {
+    console.log("ERR:", e.message);
+    await notify("ERROR: " + e.message);
+    process.exit(1);
   }
-});
+}
+
+run();
