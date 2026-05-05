@@ -13,7 +13,7 @@ const ffmpegPath = "ffmpeg";
   if (!fs.existsSync(dir)) fs.mkdirSync(dir);
 });
 
-// create google auth files from secrets
+// google auth
 if (process.env.GOOGLE_CREDENTIALS) {
   fs.writeFileSync("credentials.json", process.env.GOOGLE_CREDENTIALS);
 }
@@ -24,7 +24,8 @@ if (process.env.GOOGLE_TOKEN) {
 // image rotate
 function getNextImage() {
   const files = fs.readdirSync("images").filter(f => f.endsWith(".jpg"));
-  if (files.length === 0) throw new Error("No jpg images in images folder");
+
+  if (files.length === 0) throw new Error("No jpg images");
 
   let index = 0;
   if (fs.existsSync("index.txt")) {
@@ -37,19 +38,34 @@ function getNextImage() {
   return `images/${file}`;
 }
 
-// ffmpeg create
+// 🔥 AUDIO VALIDATE
+function isValidAudio(file) {
+  try {
+    const size = fs.statSync(file).size;
+    return size > 5000; // minimum safe size
+  } catch {
+    return false;
+  }
+}
+
+// video create
 function createVideo(imagePath, audioPath, outputPath) {
   return new Promise((resolve, reject) => {
-    const command = `"${ffmpegPath}" -y -loop 1 -i "${imagePath}" -i "${audioPath}" -vf "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,zoompan=z='min(zoom+0.002,1.15)':d=125:s=1080x1920" -c:v libx264 -preset veryfast -tune stillimage -shortest -pix_fmt yuv420p -r 30 "${outputPath}"`;
 
-    exec(command, (error) => {
-      if (error) reject(error);
-      else resolve();
+    const command = `"${ffmpegPath}" -y -loop 1 -i "${imagePath}" -i "${audioPath}" -vf "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,zoompan=z='min(zoom+0.002,1.15)':d=125:s=1080x1920" -c:v libx264 -preset veryfast -tune stillimage -shortest -pix_fmt yuv420p -r 30 -movflags +faststart "${outputPath}"`;
+
+    exec(command, (error, stdout, stderr) => {
+      if (error) {
+        console.log(stderr);
+        reject(new Error("FFmpeg failed"));
+      } else {
+        resolve();
+      }
     });
   });
 }
 
-// telegram receive
+// ===== MAIN =====
 bot.on("message", async (msg) => {
   const chatId = msg.chat.id;
   const script = msg.text;
@@ -59,7 +75,12 @@ bot.on("message", async (msg) => {
   try {
     await bot.sendMessage(chatId, "🎙 Creating AI voice...");
 
-    const voiceFile = await createVoice(script);
+    let voiceFile = await createVoice(script);
+
+    // 🔥 AUDIO FIX (IMPORTANT)
+    if (!isValidAudio(voiceFile)) {
+      throw new Error("Voice file corrupted");
+    }
 
     await bot.sendMessage(chatId, "🎬 Creating video...");
 
@@ -67,6 +88,10 @@ bot.on("message", async (msg) => {
     const videoFile = `output/video_${Date.now()}.mp4`;
 
     await createVideo(imagePath, voiceFile, videoFile);
+
+    if (!fs.existsSync(videoFile)) {
+      throw new Error("Video not created");
+    }
 
     await bot.sendMessage(chatId, "☁ Uploading to YouTube...");
 
