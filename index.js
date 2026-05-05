@@ -2,27 +2,33 @@ require("dotenv").config();
 const TelegramBot = require("node-telegram-bot-api");
 const { exec } = require("child_process");
 const fs = require("fs");
+const { createVoice } = require("./createVoice");
+const { uploadVideo } = require("./upload");
 
-const bot = new TelegramBot(process.env.BOT_TOKEN, {
-  polling: true
-});
-
-// ✅ IMPORTANT (Render compatible)
+const bot = new TelegramBot(process.env.BOT_TOKEN, { polling: true });
 const ffmpegPath = "ffmpeg";
 
-// ===== SETUP =====
-["voice", "output", "temp"].forEach(dir => {
+// folders
+["voice", "output", "temp", "images"].forEach(dir => {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir);
 });
 
-// ===== IMAGE =====
+// create google auth files from secrets
+if (process.env.GOOGLE_CREDENTIALS) {
+  fs.writeFileSync("credentials.json", process.env.GOOGLE_CREDENTIALS);
+}
+if (process.env.GOOGLE_TOKEN) {
+  fs.writeFileSync("token.json", process.env.GOOGLE_TOKEN);
+}
+
+// image rotate
 function getNextImage() {
   const files = fs.readdirSync("images").filter(f => f.endsWith(".jpg"));
-  if (files.length === 0) throw new Error("No images");
+  if (files.length === 0) throw new Error("No jpg images in images folder");
 
   let index = 0;
   if (fs.existsSync("index.txt")) {
-    index = parseInt(fs.readFileSync("index.txt"));
+    index = parseInt(fs.readFileSync("index.txt")) || 0;
   }
 
   const file = files[index % files.length];
@@ -31,55 +37,50 @@ function getNextImage() {
   return `images/${file}`;
 }
 
-// ===== VIDEO =====
+// ffmpeg create
 function createVideo(imagePath, audioPath, outputPath) {
   return new Promise((resolve, reject) => {
-
-    const command = `"${ffmpegPath}" -y -loop 1 -i "${imagePath}" -i "${audioPath}" -vf "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,zoompan=z='min(zoom+0.002,1.2)':d=125:s=1080x1920" -c:v libx264 -preset veryfast -tune stillimage -shortest -pix_fmt yuv420p -r 30 "${outputPath}"`;
+    const command = `"${ffmpegPath}" -y -loop 1 -i "${imagePath}" -i "${audioPath}" -vf "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,zoompan=z='min(zoom+0.002,1.15)':d=125:s=1080x1920" -c:v libx264 -preset veryfast -tune stillimage -shortest -pix_fmt yuv420p -r 30 "${outputPath}"`;
 
     exec(command, (error) => {
-      if (error) {
-        console.log("VIDEO ERROR:", error);
-        reject(error);
-      } else {
-        resolve();
-      }
+      if (error) reject(error);
+      else resolve();
     });
   });
 }
 
-// ===== MAIN =====
+// telegram receive
 bot.on("message", async (msg) => {
   const chatId = msg.chat.id;
-  const text = msg.text;
+  const script = msg.text;
+
+  if (!script) return;
 
   try {
-    bot.sendMessage(chatId, "Creating video... 🔥");
+    await bot.sendMessage(chatId, "🎙 Creating AI voice...");
 
+    const voiceFile = await createVoice(script);
+
+    await bot.sendMessage(chatId, "🎬 Creating video...");
+
+    const imagePath = getNextImage();
     const videoFile = `output/video_${Date.now()}.mp4`;
 
-    // ✅ STEP 5 FIX: use sample audio
-    const audioFile = "sample.mp3";
+    await createVideo(imagePath, voiceFile, videoFile);
 
-    if (!fs.existsSync(audioFile)) {
-      throw new Error("sample.mp3 NOT FOUND");
-    }
+    await bot.sendMessage(chatId, "☁ Uploading to YouTube...");
 
-    // Image
-    const imagePath = getNextImage();
+    await uploadVideo(
+      videoFile,
+      script.substring(0, 80),
+      script
+    );
 
-    // Video create
-    await createVideo(imagePath, audioFile, videoFile);
-
-    if (!fs.existsSync(videoFile)) throw new Error("Video missing");
-
-    // Send
     await bot.sendVideo(chatId, fs.createReadStream(videoFile));
-
-    console.log("🔥 VIDEO OK");
+    await bot.sendMessage(chatId, "✅ Uploaded Successfully");
 
   } catch (err) {
     console.log("ERROR:", err);
-    bot.sendMessage(chatId, "ERROR ❌");
+    await bot.sendMessage(chatId, "❌ ERROR: " + err.message);
   }
 });
