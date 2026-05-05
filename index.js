@@ -8,12 +8,12 @@ const { uploadVideo } = require("./upload");
 const bot = new TelegramBot(process.env.BOT_TOKEN, { polling: true });
 const ffmpegPath = "ffmpeg";
 
-// folders
+// ===== FOLDERS =====
 ["voice", "output", "temp", "images"].forEach(dir => {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir);
 });
 
-// google auth
+// ===== GOOGLE AUTH =====
 if (process.env.GOOGLE_CREDENTIALS) {
   fs.writeFileSync("credentials.json", process.env.GOOGLE_CREDENTIALS);
 }
@@ -21,7 +21,7 @@ if (process.env.GOOGLE_TOKEN) {
   fs.writeFileSync("token.json", process.env.GOOGLE_TOKEN);
 }
 
-// image rotate
+// ===== IMAGE ROTATE =====
 function getNextImage() {
   const files = fs.readdirSync("images").filter(f => f.endsWith(".jpg"));
 
@@ -38,17 +38,17 @@ function getNextImage() {
   return `images/${file}`;
 }
 
-// 🔥 AUDIO VALIDATE
+// ===== AUDIO CHECK =====
 function isValidAudio(file) {
   try {
     const size = fs.statSync(file).size;
-    return size > 5000; // minimum safe size
+    return size > 5000;
   } catch {
     return false;
   }
 }
 
-// video create
+// ===== VIDEO CREATE =====
 function createVideo(imagePath, audioPath, outputPath) {
   return new Promise((resolve, reject) => {
 
@@ -65,6 +65,26 @@ function createVideo(imagePath, audioPath, outputPath) {
   });
 }
 
+// ===== SMART TITLE CLEAN =====
+function cleanTitle(text) {
+  return text
+    .replace(/[#@]/g, "")   // remove unwanted symbols
+    .replace(/\n/g, " ")
+    .trim()
+    .substring(0, 70);
+}
+
+// ===== HASHTAG BUILDER =====
+function buildHashtags(text) {
+  const base = ["#shorts", "#viral", "#fyp"];
+
+  if (text.toLowerCase().includes("money")) base.push("#money");
+  if (text.toLowerCase().includes("success")) base.push("#success");
+  if (text.toLowerCase().includes("fact")) base.push("#facts");
+
+  return base.join(" ");
+}
+
 // ===== MAIN =====
 bot.on("message", async (msg) => {
   const chatId = msg.chat.id;
@@ -77,7 +97,6 @@ bot.on("message", async (msg) => {
 
     let voiceFile = await createVoice(script);
 
-    // 🔥 AUDIO FIX (IMPORTANT)
     if (!isValidAudio(voiceFile)) {
       throw new Error("Voice file corrupted");
     }
@@ -95,10 +114,17 @@ bot.on("message", async (msg) => {
 
     await bot.sendMessage(chatId, "☁ Uploading to YouTube...");
 
+    // ===== BUILD FINAL TITLE + DESCRIPTION =====
+    const title = cleanTitle(script);
+    const hashtags = buildHashtags(script);
+
+    const finalTitle = `${title} ${hashtags}`;
+    const finalDescription = `${script}\n\n${hashtags}`;
+
     await uploadVideo(
       videoFile,
-      script.substring(0, 80),
-      script
+      finalTitle,
+      finalDescription
     );
 
     await bot.sendVideo(chatId, fs.createReadStream(videoFile));
