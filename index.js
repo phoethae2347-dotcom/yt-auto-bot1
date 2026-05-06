@@ -21,14 +21,6 @@ async function notify(msg) {
   if (!fs.existsSync(d)) fs.mkdirSync(d);
 });
 
-// ===== GOOGLE AUTH =====
-if (process.env.GOOGLE_CREDENTIALS) {
-  fs.writeFileSync("credentials.json", process.env.GOOGLE_CREDENTIALS.replace(/\\n/g, "\n"));
-}
-if (process.env.GOOGLE_TOKEN) {
-  fs.writeFileSync("token.json", process.env.GOOGLE_TOKEN.replace(/\\n/g, "\n"));
-}
-
 // ===== SCRIPT (2 MIN) =====
 function generateScript() {
   return `
@@ -60,21 +52,24 @@ That is convenience.
 
 Healthy love feels calm.
 
+Not confusing.
+
 So ask yourself:
 
 Do they bring peace,
-
 or confusion?
 
-And if this helped you,
+Because that answer
+can save you years.
 
-like and subscribe.
+And if this helped you,
+like and subscribe for more.
 `.trim();
 }
 
 // ===== TITLE =====
 function buildTitle(script) {
-  return (script.split("\n")[0] + " #dating #viral").substring(0, 90);
+  return (script.split("\n")[0] + " #viral #relationship").substring(0, 90);
 }
 
 // ===== IMAGES =====
@@ -82,7 +77,7 @@ function getImages() {
   const files = fs.readdirSync("images")
     .filter(f => /\.(jpg|jpeg|png)$/i.test(f));
 
-  if (files.length < 4) throw new Error("Need 4 images");
+  if (files.length < 4) throw new Error("Need at least 4 images");
 
   return files.sort(() => Math.random() - 0.5).slice(0, 4).map(f => "images/" + f);
 }
@@ -102,25 +97,25 @@ function createVideo(images, audio, output) {
 
     const music = "music/" + musicFiles[Math.floor(Math.random() * musicFiles.length)];
 
-    // ✅ FIX: total video = 120 sec (2 min)
-    const perImage = 30;
-
-    const inputs = images.map(img => `-loop 1 -t ${perImage} -i "${img}"`).join(" ");
+    // 30 sec per image → 2 min total
+    const inputs = images.map(img => `-loop 1 -t 30 -i "${img}"`).join(" ");
 
     const filter = `
-[0:v]scale=1080:1920,zoompan=z='min(zoom+0.0005,1.1)':d=750[v0];
-[1:v]scale=1080:1920,zoompan=z='min(zoom+0.0005,1.1)':d=750[v1];
-[2:v]scale=1080:1920,zoompan=z='min(zoom+0.0005,1.1)':d=750[v2];
-[3:v]scale=1080:1920,zoompan=z='min(zoom+0.0005,1.1)':d=750[v3];
+[0:v]scale=1080:1920,setsar=1,zoompan=z='min(zoom+0.001,1.15)':d=750:s=1080x1920[v0];
+[1:v]scale=1080:1920,setsar=1,zoompan=z='min(zoom+0.001,1.15)':d=750:s=1080x1920[v1];
+[2:v]scale=1080:1920,setsar=1,zoompan=z='min(zoom+0.001,1.15)':d=750:s=1080x1920[v2];
+[3:v]scale=1080:1920,setsar=1,zoompan=z='min(zoom+0.001,1.15)':d=750:s=1080x1920[v3];
 
-[v0][v1][v2][v3]concat=n=4:v=1:a=0[v];
+[v0][v1]xfade=transition=fade:duration=1:offset=29[v01];
+[v01][v2]xfade=transition=fade:duration=1:offset=59[v02];
+[v02][v3]xfade=transition=fade:duration=1:offset=89,format=yuv420p[v];
 
 [4:a]volume=1[a1];
-[5:a]volume=0.12[a2];
+[5:a]volume=0.1[a2];
 [a1][a2]amix=inputs=2:duration=first[a]
 `;
 
-    const cmd = `"${ffmpegPath}" -y ${inputs} -i "${audio}" -i "${music}" -filter_complex "${filter}" -map "[v]" -map "[a]" -t 120 -r 30 -pix_fmt yuv420p "${output}"`;
+    const cmd = `"${ffmpegPath}" -y ${inputs} -i "${audio}" -i "${music}" -filter_complex "${filter}" -map "[v]" -map "[a]" -shortest -r 30 -pix_fmt yuv420p "${output}"`;
 
     exec(cmd, { maxBuffer: 1024 * 1024 * 20 }, (err, stdout, stderr) => {
       if (err) {
