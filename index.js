@@ -9,19 +9,19 @@ const bot = new TelegramBot(process.env.BOT_TOKEN, { polling: false });
 const CHAT_ID = process.env.CHAT_ID;
 const ffmpegPath = "ffmpeg";
 
-// notify
+// ===== NOTIFY =====
 async function notify(msg) {
   try {
     if (CHAT_ID) await bot.sendMessage(CHAT_ID, msg);
   } catch {}
 }
 
-// setup
-["voice", "output", "images"].forEach(d => {
+// ===== SETUP =====
+["voice", "output", "images", "music"].forEach(d => {
   if (!fs.existsSync(d)) fs.mkdirSync(d);
 });
 
-// google
+// ===== GOOGLE AUTH =====
 if (process.env.GOOGLE_CREDENTIALS) {
   fs.writeFileSync("credentials.json", process.env.GOOGLE_CREDENTIALS);
 }
@@ -29,11 +29,16 @@ if (process.env.GOOGLE_TOKEN) {
   fs.writeFileSync("token.json", process.env.GOOGLE_TOKEN);
 }
 
-// ===== SCRIPT =====
-function pick(arr) {
-  return arr[Math.floor(Math.random() * arr.length)];
+// ===== TITLE FIX (IMPORTANT) =====
+function cleanTitle(text) {
+  return text
+    .replace(/\n/g, " ")
+    .replace(/[^\w\s]/g, "")
+    .trim()
+    .substring(0, 80);
 }
 
+// ===== SCRIPT =====
 function generateScript() {
   return `
 If someone does this in dating, they were never serious about you.
@@ -82,12 +87,12 @@ and subscribe for more.
 `.trim();
 }
 
-// ===== RANDOM 4 IMAGES =====
+// ===== IMAGES =====
 function getImages() {
   const files = fs.readdirSync("images")
     .filter(f => /\.(jpg|jpeg|png)$/i.test(f));
 
-  if (files.length < 4) throw new Error("Need 4 images");
+  if (files.length < 4) throw new Error("Need at least 4 images");
 
   return files
     .sort(() => Math.random() - 0.5)
@@ -97,11 +102,14 @@ function getImages() {
 
 // ===== AUDIO CHECK =====
 function okAudio(f) {
-  try { return fs.statSync(f).size > 5000; }
-  catch { return false; }
+  try {
+    return fs.statSync(f).size > 5000;
+  } catch {
+    return false;
+  }
 }
 
-// ===== VIDEO (FIXED LOOP) =====
+// ===== VIDEO (FAST + STABLE + MUSIC) =====
 function createVideo(images, audio, output) {
   return new Promise((resolve, reject) => {
 
@@ -134,7 +142,9 @@ function createVideo(images, audio, output) {
       if (err) {
         console.log(stderr);
         reject(new Error("FFmpeg failed"));
-      } else resolve();
+      } else {
+        resolve();
+      }
     });
   });
 }
