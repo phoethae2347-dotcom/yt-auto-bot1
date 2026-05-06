@@ -122,13 +122,14 @@ function okAudio(f) {
 
 function createVideo(images, audio, output) {
   return new Promise((resolve, reject) => {
+
     const inputs = images.map(img => `-loop 1 -t 20 -i "${img}"`).join(" ");
 
     const filter =
-      "[0:v]scale=1080:1920,zoompan=z='min(zoom+0.001,1.1)':d=500[v0];" +
-      "[1:v]scale=1080:1920,zoompan=z='min(zoom+0.001,1.1)':d=500[v1];" +
-      "[2:v]scale=1080:1920,zoompan=z='min(zoom+0.001,1.1)':d=500[v2];" +
-      "[3:v]scale=1080:1920,zoompan=z='min(zoom+0.001,1.1)':d=500[v3];" +
+      "[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1,zoompan=z='min(zoom+0.001,1.1)':d=600:s=1080x1920[v0];" +
+      "[1:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1,zoompan=z='min(zoom+0.001,1.1)':d=600:s=1080x1920[v1];" +
+      "[2:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1,zoompan=z='min(zoom+0.001,1.1)':d=600:s=1080x1920[v2];" +
+      "[3:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1,zoompan=z='min(zoom+0.001,1.1)':d=600:s=1080x1920[v3];" +
       "[v0][v1][v2][v3]concat=n=4:v=1:a=0,format=yuv420p[v]";
 
     const cmd = `"${ffmpegPath}" -y ${inputs} -i "${audio}" -filter_complex "${filter}" -map "[v]" -map 4:a -c:v libx264 -preset veryfast -shortest -r 30 "${output}"`;
@@ -137,8 +138,11 @@ function createVideo(images, audio, output) {
       if (err) {
         console.log(stderr);
         reject(new Error("FFmpeg failed"));
-      } else resolve();
+      } else {
+        resolve();
+      }
     });
+
   });
 }
 
