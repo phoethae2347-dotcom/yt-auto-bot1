@@ -1,5 +1,9 @@
 name: Telegram Cloud Bot
 
+concurrency:
+  group: youtube-bot
+  cancel-in-progress: true
+  
 on:
   workflow_dispatch:
 
