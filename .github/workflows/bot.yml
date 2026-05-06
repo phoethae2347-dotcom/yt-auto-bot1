@@ -3,14 +3,24 @@ name: Telegram Cloud Bot
 on:
   workflow_dispatch:
 
+  schedule:
+    - cron: '0 0 * * *'
+    - cron: '0 5 * * *'
+    - cron: '0 12 * * *'
+
 jobs:
   run-bot:
     runs-on: ubuntu-latest
-    timeout-minutes: 360
+    timeout-minutes: 30
 
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
 
       - name: Install FFmpeg + Python
         run: |
@@ -23,13 +33,12 @@ jobs:
           pip3 install edge-tts
 
       - name: Install Node Packages
-        run: |
-          npm install
+        run: npm install
 
       - name: Run Telegram AI Bot
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
           GOOGLE_TOKEN: ${{ secrets.GOOGLE_TOKEN }}
-        run: |
-          node index.js
+          CHAT_ID: ${{ secrets.CHAT_ID }}
+        run: node index.js
