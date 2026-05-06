@@ -105,6 +105,15 @@ function okAudio(f) {
 function createVideo(images, audio, output) {
   return new Promise((resolve, reject) => {
 
+    const musicFiles = fs.readdirSync("music")
+      .filter(f => f.endsWith(".mp3"));
+
+    if (musicFiles.length === 0) {
+      return reject(new Error("No background music found"));
+    }
+
+    const music = "music/" + musicFiles[Math.floor(Math.random() * musicFiles.length)];
+
     const inputs = images.map(img => `-loop 1 -t 30 -i "${img}"`).join(" ");
 
     const filter = `
@@ -112,10 +121,14 @@ function createVideo(images, audio, output) {
 [1:v]scale=1080:1920,zoompan=z='min(zoom+0.0015,1.1)':d=900:s=1080x1920[v1];
 [2:v]scale=1080:1920,zoompan=z='min(zoom+0.0015,1.1)':d=900:s=1080x1920[v2];
 [3:v]scale=1080:1920,zoompan=z='min(zoom+0.0015,1.1)':d=900:s=1080x1920[v3];
-[v0][v1][v2][v3]concat=n=4:v=1:a=0[v]
+[v0][v1][v2][v3]concat=n=4:v=1:a=0[v];
+
+[4:a]volume=1.0[a1];
+[5:a]volume=0.15[a2];
+[a1][a2]amix=inputs=2:duration=first[a]
 `;
 
-    const cmd = `"${ffmpegPath}" -y ${inputs} -i "${audio}" -filter_complex "${filter}" -map "[v]" -map 4:a -shortest -r 30 -pix_fmt yuv420p "${output}"`;
+    const cmd = `"${ffmpegPath}" -y ${inputs} -i "${audio}" -i "${music}" -filter_complex "${filter}" -map "[v]" -map "[a]" -shortest -r 30 -pix_fmt yuv420p "${output}"`;
 
     exec(cmd, (err, stdout, stderr) => {
       if (err) {
@@ -124,10 +137,6 @@ function createVideo(images, audio, output) {
       } else resolve();
     });
   });
-}
-// ===== TITLE =====
-function cleanTitle(t) {
-  return t.replace(/\n/g, " ").substring(0, 80);
 }
 
 // ===== MAIN =====
