@@ -29,44 +29,20 @@ if (process.env.GOOGLE_TOKEN) {
   fs.writeFileSync("token.json", process.env.GOOGLE_TOKEN.replace(/\\n/g, "\n"));
 }
 
-// ===== HOOK =====
-const hooks = [
-  "If they confuse you, they were never serious about you.",
-  "This dating mistake ruins your life silently.",
-  "Stop ignoring this red flag.",
-  "One truth about love nobody tells you.",
-  "This will save you years of heartbreak."
-];
-
-function pick(arr) {
-  return arr[Math.floor(Math.random() * arr.length)];
-}
-
 // ===== SCRIPT =====
 function generateScript() {
   return `
-${pick(hooks)}
+If they confuse you, they were never serious about you.
 
 At first, it feels like attention.
 
-But slowly,
-it turns into confusion.
-
-You start questioning yourself.
-
-But you're not wrong.
-
-Here is the truth:
+But slowly, it turns into confusion.
 
 Confusion is not love.
 
 People who truly want you bring clarity.
 
-They show consistency.
-
-If someone only shows up
-when it benefits them,
-
+If someone only shows up when it benefits them,
 that is not love.
 
 That is convenience.
@@ -76,14 +52,13 @@ So ask yourself:
 Do they bring peace,
 or confusion?
 
-And if this helped you,
-like and subscribe.
+Like and subscribe for more.
 `.trim();
 }
 
 // ===== TITLE =====
 function buildTitle(script) {
-  return (script.split("\n")[0] + " #dating #viral #relationship").substring(0, 90);
+  return (script.split("\n")[0] + " #dating #viral").substring(0, 90);
 }
 
 // ===== IMAGES =====
@@ -102,7 +77,7 @@ function okAudio(f) {
   catch { return false; }
 }
 
-// ===== VIDEO FIX =====
+// ===== VIDEO (FIXED 100%) =====
 function createVideo(images, audio, output) {
   return new Promise((resolve, reject) => {
 
@@ -111,14 +86,14 @@ function createVideo(images, audio, output) {
 
     const music = "music/" + musicFiles[Math.floor(Math.random() * musicFiles.length)];
 
-    // loop images infinitely (key fix)
-    const inputs = images.map(img => `-loop 1 -i "${img}"`).join(" ");
+    // ✅ FIX: each image 10 sec only (NO infinite loop)
+    const inputs = images.map(img => `-loop 1 -t 10 -i "${img}"`).join(" ");
 
     const filter = `
-[0:v]scale=1080:1920,zoompan=z='min(zoom+0.001,1.2)':d=150[v0];
-[1:v]scale=1080:1920,zoompan=z='min(zoom+0.001,1.2)':d=150[v1];
-[2:v]scale=1080:1920,zoompan=z='min(zoom+0.001,1.2)':d=150[v2];
-[3:v]scale=1080:1920,zoompan=z='min(zoom+0.001,1.2)':d=150[v3];
+[0:v]scale=1080:1920,zoompan=z='min(zoom+0.001,1.2)':d=250[v0];
+[1:v]scale=1080:1920,zoompan=z='min(zoom+0.001,1.2)':d=250[v1];
+[2:v]scale=1080:1920,zoompan=z='min(zoom+0.001,1.2)':d=250[v2];
+[3:v]scale=1080:1920,zoompan=z='min(zoom+0.001,1.2)':d=250[v3];
 
 [v0][v1][v2][v3]concat=n=4:v=1:a=0[v];
 
@@ -127,12 +102,9 @@ function createVideo(images, audio, output) {
 [a1][a2]amix=inputs=2:duration=first[a]
 `;
 
-    const cmd = `"${ffmpegPath}" -y ${inputs} -i "${audio}" -i "${music}" \
--filter_complex "${filter}" \
--map "[v]" -map "[a]" \
--shortest -r 30 -pix_fmt yuv420p "${output}"`;
+    const cmd = `"${ffmpegPath}" -y ${inputs} -i "${audio}" -i "${music}" -filter_complex "${filter}" -map "[v]" -map "[a]" -shortest -r 30 -pix_fmt yuv420p "${output}"`;
 
-    exec(cmd, { maxBuffer: 1024 * 1024 * 10 }, (err, stdout, stderr) => {
+    exec(cmd, { maxBuffer: 1024 * 1024 * 20 }, (err, stdout, stderr) => {
       if (err) {
         console.log(stderr);
         reject(new Error("FFmpeg failed"));
@@ -159,6 +131,8 @@ async function run() {
     const out = `output/video_${Date.now()}.mp4`;
 
     await createVideo(images, voice, out);
+
+    if (!fs.existsSync(out)) throw new Error("Video missing");
 
     await notify("☁ Upload...");
     await uploadVideo(out, buildTitle(script), script);
