@@ -1,6 +1,6 @@
 require("dotenv").config();
 const fs = require("fs");
-const { exec, execSync } = require("child_process");
+const { exec } = require("child_process");
 const TelegramBot = require("node-telegram-bot-api");
 const { createVoice } = require("./createVoice");
 const { uploadVideo } = require("./upload");
@@ -29,26 +29,14 @@ if (process.env.GOOGLE_TOKEN) {
   fs.writeFileSync("token.json", process.env.GOOGLE_TOKEN.replace(/\\n/g, "\n"));
 }
 
-// ===== SCRIPT (≈2 MIN) =====
+// ===== SCRIPT (2 MIN) =====
 function generateScript() {
   return `
 If they confuse you, they were never serious about you.
 
 At first, it feels like attention.
 
-They message you.
-They show interest.
-
-And you think it's real.
-
-But slowly,
-things start changing.
-
-Replies slow down.
-
-Effort disappears.
-
-And confusion grows.
+But slowly, it turns into confusion.
 
 You start questioning yourself.
 
@@ -58,46 +46,45 @@ Here is the truth:
 
 Confusion is not love.
 
-People who truly want you
-bring clarity.
+People who truly want you bring clarity.
 
 They show consistency.
 
 They show effort.
 
-If someone only shows up
-when it benefits them,
+If someone only shows up when it benefits them,
 
 that is not love.
 
 That is convenience.
 
-And convenience will never build
-a real relationship.
-
 Healthy love feels calm.
-
-Not confusing.
 
 So ask yourself:
 
-Do they bring peace?
+Do they bring peace,
 
-Or do they bring stress?
-
-Because that answer
-can save you years.
+or confusion?
 
 And if this helped you,
 
-like this video
-and subscribe for more.
+like and subscribe.
 `.trim();
 }
 
 // ===== TITLE =====
 function buildTitle(script) {
-  return (script.split("\n")[0] + " #dating #viral #relationship").substring(0, 90);
+  return (script.split("\n")[0] + " #dating #viral").substring(0, 90);
+}
+
+// ===== IMAGES =====
+function getImages() {
+  const files = fs.readdirSync("images")
+    .filter(f => /\.(jpg|jpeg|png)$/i.test(f));
+
+  if (files.length < 4) throw new Error("Need 4 images");
+
+  return files.sort(() => Math.random() - 0.5).slice(0, 4).map(f => "images/" + f);
 }
 
 // ===== AUDIO CHECK =====
@@ -106,23 +93,7 @@ function okAudio(f) {
   catch { return false; }
 }
 
-// ===== GET AUDIO DURATION =====
-function getAudioDuration(file) {
-  const out = execSync(`ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "${file}"`);
-  return Math.ceil(parseFloat(out.toString()));
-}
-
-// ===== IMAGES =====
-function getImages() {
-  const files = fs.readdirSync("images")
-    .filter(f => /\.(jpg|jpeg|png)$/i.test(f));
-
-  if (files.length < 4) throw new Error("Need at least 4 images");
-
-  return files.sort(() => Math.random() - 0.5).slice(0, 4).map(f => "images/" + f);
-}
-
-// ===== VIDEO (AUTO SYNC) =====
+// ===== VIDEO (FINAL FIX) =====
 function createVideo(images, audio, output) {
   return new Promise((resolve, reject) => {
 
@@ -131,17 +102,16 @@ function createVideo(images, audio, output) {
 
     const music = "music/" + musicFiles[Math.floor(Math.random() * musicFiles.length)];
 
-    // 🔥 AUTO LENGTH
-    const duration = getAudioDuration(audio);
-    const perImage = Math.ceil(duration / images.length);
+    // ✅ FIX: total video = 120 sec (2 min)
+    const perImage = 30;
 
     const inputs = images.map(img => `-loop 1 -t ${perImage} -i "${img}"`).join(" ");
 
     const filter = `
-[0:v]scale=1080:1920,zoompan=z='min(zoom+0.0015,1.2)':d=300[v0];
-[1:v]scale=1080:1920,zoompan=z='min(zoom+0.0015,1.2)':d=300[v1];
-[2:v]scale=1080:1920,zoompan=z='min(zoom+0.0015,1.2)':d=300[v2];
-[3:v]scale=1080:1920,zoompan=z='min(zoom+0.0015,1.2)':d=300[v3];
+[0:v]scale=1080:1920,zoompan=z='min(zoom+0.0005,1.1)':d=750[v0];
+[1:v]scale=1080:1920,zoompan=z='min(zoom+0.0005,1.1)':d=750[v1];
+[2:v]scale=1080:1920,zoompan=z='min(zoom+0.0005,1.1)':d=750[v2];
+[3:v]scale=1080:1920,zoompan=z='min(zoom+0.0005,1.1)':d=750[v3];
 
 [v0][v1][v2][v3]concat=n=4:v=1:a=0[v];
 
@@ -150,11 +120,11 @@ function createVideo(images, audio, output) {
 [a1][a2]amix=inputs=2:duration=first[a]
 `;
 
-    const cmd = `"${ffmpegPath}" -y ${inputs} -i "${audio}" -i "${music}" -filter_complex "${filter}" -map "[v]" -map "[a]" -shortest -r 30 -pix_fmt yuv420p "${output}"`;
+    const cmd = `"${ffmpegPath}" -y ${inputs} -i "${audio}" -i "${music}" -filter_complex "${filter}" -map "[v]" -map "[a]" -t 120 -r 30 -pix_fmt yuv420p "${output}"`;
 
     exec(cmd, { maxBuffer: 1024 * 1024 * 20 }, (err, stdout, stderr) => {
       if (err) {
-        console.log(stderr);
+        console.log("FFMPEG ERROR:", stderr);
         reject(new Error("FFmpeg failed"));
       } else resolve();
     });
@@ -179,6 +149,8 @@ async function run() {
     const out = `output/video_${Date.now()}.mp4`;
 
     await createVideo(images, voice, out);
+
+    if (!fs.existsSync(out)) throw new Error("Video missing");
 
     await notify("☁ Upload...");
     await uploadVideo(out, buildTitle(script), script);
