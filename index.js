@@ -9,12 +9,20 @@ const bot = new TelegramBot(process.env.BOT_TOKEN, { polling: false });
 const CHAT_ID = process.env.CHAT_ID;
 const ffmpegPath = "ffmpeg";
 
+/* =========================
+   TELEGRAM NOTIFY
+========================= */
 async function notify(msg) {
   try {
     if (CHAT_ID) await bot.sendMessage(CHAT_ID, msg);
-  } catch {}
+  } catch (e) {
+    console.log("notify error:", e.message);
+  }
 }
 
+/* =========================
+   SETUP
+========================= */
 ["voice", "output", "images"].forEach(dir => {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir);
 });
@@ -29,43 +37,42 @@ if (process.env.GOOGLE_TOKEN) {
 /* =========================
    PRO SCRIPT ENGINE
 ========================= */
-
 const hooks = [
-  "If they do this, they were never serious about you.",
-  "Here’s the dating truth nobody wants to admit.",
-  "If you keep getting hurt in dating, hear this.",
-  "One relationship lesson that will save your heart.",
-  "This is how emotionally unavailable people expose themselves."
+  "If someone does this in dating, they were never serious about you.",
+  "The biggest dating mistake people make is ignoring this red flag.",
+  "Here’s how emotionally unavailable people reveal themselves early.",
+  "If they make you feel this way, walk away immediately.",
+  "One brutal dating truth that can save you years of heartbreak."
 ];
 
-const topics = [
+const scenarios = [
   {
-    problem: "They text you only when it’s convenient for them.",
-    explain: "Consistency is effort. If someone likes you, you won’t need to wonder where you stand.",
-    lesson: "Interest looks like clarity, not confusion."
+    setup: "They text you constantly at night but disappear during the day.",
+    twist: "That usually means they enjoy access to you, not commitment to you.",
+    lesson: "People make time for what they value."
   },
   {
-    problem: "They say they miss you but never make plans.",
-    explain: "Words without action are manipulation disguised as affection.",
-    lesson: "Pay attention to behavior, not promises."
+    setup: "They say they like you but avoid making real plans.",
+    twist: "Words without effort are just manipulation with good marketing.",
+    lesson: "Listen to patterns, not promises."
   },
   {
-    problem: "They keep you around but avoid commitment.",
-    explain: "Some people enjoy access to you without responsibility for you.",
-    lesson: "Never stay where you are only an option."
+    setup: "They come back every time you start moving on.",
+    twist: "Some people do not want you — they just do not want to lose access to you.",
+    lesson: "Missing you is not the same as valuing you."
   },
   {
-    problem: "They disappear and come back when lonely.",
-    explain: "That’s not love. That’s convenience.",
-    lesson: "Do not confuse temporary attention with genuine care."
+    setup: "They keep saying they are not ready for a relationship.",
+    twist: "Often that means they are not ready for one with you.",
+    lesson: "Do not wait around hoping someone chooses you later."
   }
 ];
 
-const ctas = [
-  "Remember this before your next relationship.",
-  "Save this so you never forget your worth.",
-  "The right person will never make you question where you stand.",
-  "Protect your heart and choose people who choose you."
+const endings = [
+  "The right person will never leave you confused about their intentions.",
+  "Healthy love brings peace, not anxiety.",
+  "Stop chasing clarity from people who benefit from your confusion.",
+  "Protect your heart by believing actions over words."
 ];
 
 function pick(arr) {
@@ -74,65 +81,84 @@ function pick(arr) {
 
 function generateScript() {
   const hook = pick(hooks);
-  const topic = pick(topics);
-  const cta = pick(ctas);
+  const s = pick(scenarios);
+  const end = pick(endings);
 
-  return `
+  return 
 ${hook}
 
-${topic.problem}
+${s.setup}
 
-Most people ignore this red flag because they want potential more than reality.
+Most people ignore this because they confuse attention with genuine interest.
 
-But listen carefully:
+But here is the truth:
 
-${topic.explain}
+${s.twist}
 
-When someone genuinely values you,
-they create security, not anxiety.
-They bring peace, not confusion.
-They make effort without being asked.
+Someone who truly wants you does not create confusion.
+They do not leave you wondering where you stand.
+They do not make you question your worth.
 
-${topic.lesson}
+Real interest creates consistency.
+Real effort creates security.
+Real love creates peace.
 
-Stop romanticizing mixed signals.
-Stop chasing people who only want partial access to you.
+${s.lesson}
 
-${cta}
-`.trim();
+And if someone only shows up when it benefits them,
+that is not connection—
+that is convenience.
+
+${end}
+
+Remember this before giving someone another chance.
+.trim();
 }
 
 /* =========================
-   IMAGE ROTATION (4 LOOP)
+   IMAGE PICKER
 ========================= */
-
 function getImages() {
   const files = fs.readdirSync("images")
-    .filter(f => f.endsWith(".jpg") || f.endsWith(".png"));
+    .filter(f => /\.(jpg|jpeg|png)$/i.test(f));
 
   if (files.length < 4) throw new Error("Need at least 4 images");
 
-  return files.slice(0, 4).map(f => "images/" + f);
+  // random 4 images
+  return files
+    .sort(() => Math.random() - 0.5)
+    .slice(0, 4)
+    .map(f => "images/" + f);
 }
 
-function okAudio(f) {
-  try { return fs.statSync(f).size > 5000; }
-  catch { return false; }
+/* =========================
+   AUDIO CHECK
+========================= */
+function okAudio(file) {
+  try {
+    return fs.statSync(file).size > 5000;
+  } catch {
+    return false;
+  }
 }
-
+/* =========================
+   SMOOTH CINEMATIC VIDEO
+========================= */
 function createVideo(images, audio, output) {
   return new Promise((resolve, reject) => {
+    const inputs = images.map(img => -loop 1 -t 25 -i "${img}").join(" ");
 
-    const inputs = images.map(img => `-loop 1 -t 20 -i "${img}"`).join(" ");
+    const filter = 
+[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1,zoompan=z='if(lte(on,375),1+0.0004*on,1.15)':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=375:s=1080x1920[v0];
+[1:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1,zoompan=z='if(lte(on,375),1+0.0004*on,1.15)':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=375:s=1080x1920[v1];
+[2:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1,zoompan=z='if(lte(on,375),1+0.0004*on,1.15)':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=375:s=1080x1920[v2];
+[3:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1,zoompan=z='if(lte(on,375),1+0.0004*on,1.15)':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=375:s=1080x1920[v3];
+[v0][v1]xfade=transition=fade:duration=0.5:offset=12.0[x1];
+[x1][v2]xfade=transition=fade:duration=0.5:offset=24.0[x2];
+[x2][v3]xfade=transition=fade:duration=0.5:offset=36.0,format=yuv420p[v]
+;
 
-    const filter =
-      "[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1,zoompan=z='min(zoom+0.001,1.1)':d=600:s=1080x1920[v0];" +
-      "[1:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1,zoompan=z='min(zoom+0.001,1.1)':d=600:s=1080x1920[v1];" +
-      "[2:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1,zoompan=z='min(zoom+0.001,1.1)':d=600:s=1080x1920[v2];" +
-      "[3:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1,zoompan=z='min(zoom+0.001,1.1)':d=600:s=1080x1920[v3];" +
-      "[v0][v1][v2][v3]concat=n=4:v=1:a=0,format=yuv420p[v]";
-
-    const cmd = `"${ffmpegPath}" -y ${inputs} -i "${audio}" -filter_complex "${filter}" -map "[v]" -map 4:a -c:v libx264 -preset veryfast -shortest -r 30 "${output}"`;
+    const cmd = "${ffmpegPath}" -y ${inputs} -i "${audio}" -filter_complex "${filter}" -map "[v]" -map 4:a -c:v libx264 -preset veryfast -shortest -r 30 "${output}";
 
     exec(cmd, (err, stdout, stderr) => {
       if (err) {
@@ -142,18 +168,23 @@ function createVideo(images, audio, output) {
         resolve();
       }
     });
-
   });
 }
 
-function cleanTitle(t) {
-  return t.replace(/\n/g, " ").substring(0, 90);
+/* =========================
+   TITLE
+========================= */
+function cleanTitle(text) {
+  return text
+    .replace(/\n/g, " ")
+    .replace(/[^\w\s]/g, "")
+    .trim()
+    .substring(0, 90);
 }
 
 /* =========================
    MAIN
 ========================= */
-
 async function run() {
   try {
     const script = generateScript();
@@ -165,16 +196,18 @@ async function run() {
 
     await notify("🎬 Video...");
     const images = getImages();
-    const out = `output/video_${Date.now()}.mp4`;
+    const out = output/video_${Date.now()}.mp4;
 
     await createVideo(images, voice, out);
+
+    if (!fs.existsSync(out)) throw new Error("Video missing");
 
     await notify("☁ Upload...");
     await uploadVideo(out, cleanTitle(script), script);
 
     await notify("✅ Uploaded");
   } catch (e) {
-    console.log(e);
+    console.log("ERR:", e.message);
     await notify("❌ ERROR: " + e.message);
     process.exit(1);
   }
