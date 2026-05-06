@@ -29,9 +29,7 @@ async function notify(msg) {
   if (!fs.existsSync(d)) fs.mkdirSync(d);
 });
 
-// ===== SCRIPT =====
-function generateScript() {
-  return `
+// ===== SCRIPT ENGINE =====
 const hooks = [
   "If someone does this to you, they were never serious about you.",
   "This relationship truth will save you years of heartbreak.",
@@ -40,8 +38,8 @@ const hooks = [
   "One dating truth nobody tells you until it's too late."
 ];
 
-function pick(arr){
-  return arr[Math.floor(Math.random()*arr.length)];
+function pick(arr) {
+  return arr[Math.floor(Math.random() * arr.length)];
 }
 
 function generateScript() {
@@ -158,19 +156,20 @@ function getImages() {
 
 // ===== AUDIO CHECK =====
 function okAudio(f) {
-  try { return fs.statSync(f).size > 5000; }
-  catch { return false; }
+  try {
+    return fs.statSync(f).size > 5000;
+  } catch {
+    return false;
+  }
 }
 
-// ===== VIDEO FINAL STABLE =====
+// ===== VIDEO =====
 function createVideo(images, audio, output) {
   return new Promise((resolve, reject) => {
-
     const musicFiles = fs.readdirSync("music").filter(f => f.endsWith(".mp3"));
     if (musicFiles.length === 0) return reject(new Error("No music"));
 
     const music = "music/" + musicFiles[0];
-
     const inputs = images.map(img => `-loop 1 -t 30 -framerate 24 -i "${img}"`).join(" ");
 
     const filter = `
@@ -178,11 +177,9 @@ function createVideo(images, audio, output) {
 [1:v]scale=1080:1920,setsar=1,fps=24[v1];
 [2:v]scale=1080:1920,setsar=1,fps=24[v2];
 [3:v]scale=1080:1920,setsar=1,fps=24[v3];
-
 [v0][v1]xfade=transition=fade:duration=1:offset=29[v01];
 [v01][v2]xfade=transition=fade:duration=1:offset=58[v02];
 [v02][v3]xfade=transition=fade:duration=1:offset=87,format=yuv420p[v];
-
 [4:a]volume=1[a1];
 [5:a]volume=0.08[a2];
 [a1][a2]amix=inputs=2:duration=first[a]
@@ -194,7 +191,9 @@ function createVideo(images, audio, output) {
       if (err) {
         console.log("FFMPEG STDERR:\n", stderr);
         reject(new Error("FFmpeg failed"));
-      } else resolve();
+      } else {
+        resolve();
+      }
     });
   });
 }
@@ -208,12 +207,14 @@ async function run() {
 
     await notify("🎙 Voice...");
     const voice = await createVoice(script);
+
     if (!okAudio(voice)) throw new Error("Audio invalid");
 
     await notify("🎬 Video...");
     const images = getImages();
 
     const out = `output/video_${Date.now()}.mp4`;
+
     await createVideo(images, voice, out);
 
     if (!fs.existsSync(out)) throw new Error("Video missing");
