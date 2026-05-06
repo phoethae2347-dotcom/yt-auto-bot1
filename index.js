@@ -21,6 +21,21 @@ async function notify(msg) {
   if (!fs.existsSync(d)) fs.mkdirSync(d);
 });
 
+// ===== GOOGLE AUTH (CRITICAL FIX) =====
+if (process.env.GOOGLE_CREDENTIALS) {
+  fs.writeFileSync(
+    "credentials.json",
+    process.env.GOOGLE_CREDENTIALS.replace(/\\n/g, "\n")
+  );
+}
+
+if (process.env.GOOGLE_TOKEN) {
+  fs.writeFileSync(
+    "token.json",
+    process.env.GOOGLE_TOKEN.replace(/\\n/g, "\n")
+  );
+}
+
 // ===== TITLE =====
 function cleanTitle(text) {
   return text.replace(/\n/g, " ").substring(0, 80);
@@ -73,7 +88,7 @@ function okAudio(f) {
   catch { return false; }
 }
 
-// ===== VIDEO FIXED =====
+// ===== VIDEO =====
 function createVideo(images, audio, output) {
   return new Promise((resolve, reject) => {
 
@@ -82,48 +97,17 @@ function createVideo(images, audio, output) {
 
     const music = "music/" + musicFiles[Math.floor(Math.random() * musicFiles.length)];
 
-    // subtitle file
-    const subtitleFile = "sub.srt";
-
-    const srt = `1
-00:00:00,000 --> 00:00:05,000
-Confusion is not love
-
-2
-00:00:05,000 --> 00:00:10,000
-Real love brings clarity
-
-3
-00:00:10,000 --> 00:00:15,000
-Consistency matters
-`;
-
-    fs.writeFileSync(subtitleFile, srt);
-
-    // IMPORTANT: SAME DURATION PER IMAGE
     const duration = 15;
 
     const inputs = images.map(img => `-loop 1 -t ${duration} -i "${img}"`).join(" ");
 
-    // FIXED FILTER (NO CONFLICT)
-    const filter = `
-[0:v]scale=1080:1920,setsar=1[v0];
-[1:v]scale=1080:1920,setsar=1[v1];
-[2:v]scale=1080:1920,setsar=1[v2];
-[3:v]scale=1080:1920,setsar=1[v3];
-[v0][v1][v2][v3]concat=n=4:v=1:a=0[vbase];
-[vbase]subtitles=${subtitleFile}[v];
-
-[4:a]volume=1[a1];
-[5:a]volume=0.15[a2];
-[a1][a2]amix=inputs=2:duration=first[a]
-`;
-
-    const cmd = `"${ffmpegPath}" -y ${inputs} -i "${audio}" -i "${music}" -filter_complex "${filter}" -map "[v]" -map "[a]" -shortest -r 24 -pix_fmt yuv420p "${output}"`;
+    const cmd = `"${ffmpegPath}" -y ${inputs} -i "${audio}" -i "${music}" \
+-filter_complex "[0:v]scale=1080:1920,setsar=1[v0];[1:v]scale=1080:1920,setsar=1[v1];[2:v]scale=1080:1920,setsar=1[v2];[3:v]scale=1080:1920,setsar=1[v3];[v0][v1][v2][v3]concat=n=4:v=1:a=0[v];[4:a]volume=1[a1];[5:a]volume=0.15[a2];[a1][a2]amix=inputs=2:duration=first[a]" \
+-map "[v]" -map "[a]" -shortest -r 24 -pix_fmt yuv420p "${output}"`;
 
     exec(cmd, (err, stdout, stderr) => {
       if (err) {
-        console.log("FFMPEG ERROR:", stderr);
+        console.log(stderr);
         reject(new Error("FFmpeg failed"));
       } else resolve();
     });
