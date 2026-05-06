@@ -21,7 +21,7 @@ async function notify(msg) {
   if (!fs.existsSync(d)) fs.mkdirSync(d);
 });
 
-// ===== SCRIPT (2 MIN) =====
+// ===== SCRIPT =====
 function generateScript() {
   return `
 If they confuse you, they were never serious about you.
@@ -30,40 +30,23 @@ At first, it feels like attention.
 
 But slowly, it turns into confusion.
 
-You start questioning yourself.
-
-But you're not wrong.
-
-Here is the truth:
-
 Confusion is not love.
 
 People who truly want you bring clarity.
 
 They show consistency.
 
-They show effort.
-
 If someone only shows up when it benefits them,
-
 that is not love.
 
 That is convenience.
 
-Healthy love feels calm.
-
-Not confusing.
-
 So ask yourself:
 
-Do they bring peace,
-or confusion?
-
-Because that answer
-can save you years.
+Do they bring peace or confusion?
 
 And if this helped you,
-like and subscribe for more.
+like and subscribe.
 `.trim();
 }
 
@@ -77,9 +60,9 @@ function getImages() {
   const files = fs.readdirSync("images")
     .filter(f => /\.(jpg|jpeg|png)$/i.test(f));
 
-  if (files.length < 4) throw new Error("Need at least 4 images");
+  if (files.length < 4) throw new Error("Need 4 images");
 
-  return files.sort(() => Math.random() - 0.5).slice(0, 4).map(f => "images/" + f);
+  return files.slice(0, 4).map(f => "images/" + f);
 }
 
 // ===== AUDIO CHECK =====
@@ -88,38 +71,35 @@ function okAudio(f) {
   catch { return false; }
 }
 
-// ===== VIDEO (FINAL FIX) =====
+// ===== VIDEO (ULTRA STABLE) =====
 function createVideo(images, audio, output) {
   return new Promise((resolve, reject) => {
 
     const musicFiles = fs.readdirSync("music").filter(f => f.endsWith(".mp3"));
     if (musicFiles.length === 0) return reject(new Error("No music"));
 
-    const music = "music/" + musicFiles[Math.floor(Math.random() * musicFiles.length)];
+    const music = "music/" + musicFiles[0];
 
-    // 30 sec per image → 2 min total
-    const inputs = images.map(img => `-loop 1 -t 30 -i "${img}"`).join(" ");
+    // 🔥 FIX: 20 sec × 6 images = 120 sec (2 min)
+    const selectedImages = [...images, ...images].slice(0, 6);
+    const inputs = selectedImages.map(img => `-loop 1 -t 20 -i "${img}"`).join(" ");
 
     const filter = `
-[0:v]scale=1080:1920,setsar=1,zoompan=z='min(zoom+0.001,1.15)':d=750:s=1080x1920[v0];
-[1:v]scale=1080:1920,setsar=1,zoompan=z='min(zoom+0.001,1.15)':d=750:s=1080x1920[v1];
-[2:v]scale=1080:1920,setsar=1,zoompan=z='min(zoom+0.001,1.15)':d=750:s=1080x1920[v2];
-[3:v]scale=1080:1920,setsar=1,zoompan=z='min(zoom+0.001,1.15)':d=750:s=1080x1920[v3];
+[0:v][1:v][2:v][3:v][4:v][5:v]concat=n=6:v=1:a=0[v];
 
-[v0][v1]xfade=transition=fade:duration=1:offset=29[v01];
-[v01][v2]xfade=transition=fade:duration=1:offset=59[v02];
-[v02][v3]xfade=transition=fade:duration=1:offset=89,format=yuv420p[v];
-
-[4:a]volume=1[a1];
-[5:a]volume=0.1[a2];
+[6:a]volume=1[a1];
+[7:a]volume=0.1[a2];
 [a1][a2]amix=inputs=2:duration=first[a]
 `;
 
-    const cmd = `"${ffmpegPath}" -y ${inputs} -i "${audio}" -i "${music}" -filter_complex "${filter}" -map "[v]" -map "[a]" -shortest -r 30 -pix_fmt yuv420p "${output}"`;
+    const cmd = `"${ffmpegPath}" -y ${inputs} -i "${audio}" -i "${music}" \
+-filter_complex "${filter}" \
+-map "[v]" -map "[a]" \
+-shortest -preset ultrafast -r 24 -pix_fmt yuv420p "${output}"`;
 
-    exec(cmd, { maxBuffer: 1024 * 1024 * 20 }, (err, stdout, stderr) => {
+    exec(cmd, { maxBuffer: 1024 * 1024 * 50 }, (err, stdout, stderr) => {
       if (err) {
-        console.log("FFMPEG ERROR:", stderr);
+        console.log(stderr);
         reject(new Error("FFmpeg failed"));
       } else resolve();
     });
