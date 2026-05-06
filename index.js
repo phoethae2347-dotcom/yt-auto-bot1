@@ -21,6 +21,7 @@ async function notify(msg) {
   if (!fs.existsSync(d)) fs.mkdirSync(d);
 });
 
+// google
 if (process.env.GOOGLE_CREDENTIALS) {
   fs.writeFileSync("credentials.json", process.env.GOOGLE_CREDENTIALS);
 }
@@ -28,82 +29,83 @@ if (process.env.GOOGLE_TOKEN) {
   fs.writeFileSync("token.json", process.env.GOOGLE_TOKEN);
 }
 
-// ===== SCRIPT ENGINE =====
-const hooks = [
-  "If someone does this in dating, they were never serious about you.",
-  "The biggest dating mistake people make is ignoring this red flag.",
-  "Here’s how emotionally unavailable people reveal themselves early."
-];
-
-const scenarios = [
-  {
-    setup: "They text you constantly at night but disappear during the day.",
-    twist: "That means they enjoy access to you, not commitment.",
-    lesson: "People make time for what they value."
-  },
-  {
-    setup: "They say they like you but avoid making real plans.",
-    twist: "Words without effort are manipulation.",
-    lesson: "Watch actions, not promises."
-  }
-];
-
-const endings = [
-  "Healthy love brings peace, not anxiety.",
-  "Stop chasing people who confuse you."
-];
-
+// ===== SCRIPT =====
 function pick(arr) {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
 function generateScript() {
-  const h = pick(hooks);
-  const s = pick(scenarios);
-  const e = pick(endings);
-
   return `
-${h}
+If someone does this in dating, they were never serious about you.
 
-${s.setup}
+They give you attention only when it's convenient.
 
-Most people ignore this because they confuse attention with real interest.
+At first, it feels good.
+You think they care.
 
-But here is the truth:
+But slowly, confusion starts growing.
 
-${s.twist}
+You start asking yourself questions.
+You wonder if you're overthinking.
 
-Someone who truly wants you creates clarity, not confusion.
+But you're not.
 
-${s.lesson}
+Here is the truth:
 
-${e}
+People who truly want you do not create confusion.
 
-Remember this before giving someone another chance.
+They show consistency.
+They show effort.
+They show clarity.
+
+If someone only shows up when it benefits them,
+that is not love.
+
+That is convenience.
+
+And convenience will never build a real relationship.
+
+Healthy love feels calm, not confusing.
+
+So before giving someone another chance,
+ask yourself:
+
+Do they bring peace,
+or do they bring confusion?
+
+Because that answer
+can save you years.
+
+And if this helped you,
+like this video
+and subscribe for more.
 `.trim();
 }
 
-// ===== IMAGE =====
+// ===== RANDOM 4 IMAGES =====
 function getImages() {
   const files = fs.readdirSync("images")
-    .filter(f => /\.(jpg|png|jpeg)$/i.test(f));
+    .filter(f => /\.(jpg|jpeg|png)$/i.test(f));
 
   if (files.length < 4) throw new Error("Need 4 images");
 
-  return files.slice(0, 4).map(f => "images/" + f);
+  return files
+    .sort(() => Math.random() - 0.5)
+    .slice(0, 4)
+    .map(f => "images/" + f);
 }
 
-// ===== AUDIO =====
+// ===== AUDIO CHECK =====
 function okAudio(f) {
   try { return fs.statSync(f).size > 5000; }
   catch { return false; }
 }
 
-// ===== VIDEO =====
+// ===== VIDEO (FIXED LOOP) =====
 function createVideo(images, audio, output) {
   return new Promise((resolve, reject) => {
 
-    const inputs = images.map(img => `-loop 1 -t 20 -i "${img}"`).join(" ");
+    const inputs = images.map(img => `-loop 1 -t 30 -i "${img}"`).join(" ");
 
     const filter = `
 [0:v]scale=1080:1920,setsar=1[v0];
@@ -113,7 +115,7 @@ function createVideo(images, audio, output) {
 [v0][v1][v2][v3]concat=n=4:v=1:a=0[v]
 `;
 
-    const cmd = `"${ffmpegPath}" -y ${inputs} -i "${audio}" -filter_complex "${filter}" -map "[v]" -map 4:a -shortest "${output}"`;
+    const cmd = `"${ffmpegPath}" -y ${inputs} -i "${audio}" -filter_complex "${filter}" -map "[v]" -map 4:a -shortest -r 30 -pix_fmt yuv420p "${output}"`;
 
     exec(cmd, (err, stdout, stderr) => {
       if (err) {
