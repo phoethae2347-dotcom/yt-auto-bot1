@@ -29,12 +29,12 @@ if (process.env.GOOGLE_TOKEN) {
   fs.writeFileSync("token.json", process.env.GOOGLE_TOKEN.replace(/\\n/g, "\n"));
 }
 
-// ===== VIRAL HOOK ENGINE =====
+// ===== VIRAL HOOK =====
 const hooks = [
-  "This dating mistake is silently ruining your life.",
+  "This dating mistake is destroying your chances silently.",
   "If they do this, they were never serious about you.",
-  "One truth about relationships nobody tells you.",
-  "Stop ignoring this red flag in dating.",
+  "Stop ignoring this red flag before it's too late.",
+  "One truth about love nobody tells you.",
   "This will save you years of heartbreak."
 ];
 
@@ -42,7 +42,7 @@ function pick(arr) {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
-// ===== SCRIPT =====
+// ===== 2 MIN SCRIPT =====
 function generateScript() {
   const hook = pick(hooks);
 
@@ -51,51 +51,87 @@ ${hook}
 
 At first, it feels like attention.
 
-But slowly, it turns into confusion.
+They text you.
+They show interest.
+
+And you start believing
+that something real is building.
+
+But slowly,
+things start changing.
+
+Replies get slower.
+
+Effort becomes inconsistent.
+
+And confusion starts to grow.
 
 You start questioning yourself.
 
-You wonder if you're overthinking.
+You wonder,
+maybe you're overthinking.
 
 But you're not.
 
 Here is the truth:
 
-Confusion is not love.
+Confusion is never love.
 
-People who truly want you bring clarity.
+People who truly want you
+do not create emotional uncertainty.
 
 They show consistency.
 
 They show effort.
 
-If someone only shows up when it benefits them,
+They show clarity.
+
+Because real connection
+does not leave you guessing.
+
+If someone only shows up
+when it benefits them,
 
 that is not love.
 
 That is convenience.
 
-So ask yourself:
+And convenience will never build
+a real relationship.
 
-Do they bring peace, or confusion?
+Healthy love feels calm.
 
-Because that answer can save you years.
+Not stressful.
+
+Not confusing.
+
+So ask yourself this:
+
+Do they bring peace into your life?
+
+Or do they bring anxiety?
+
+Because your answer
+will save you years.
 
 And if this helped you,
 
-like and subscribe for more.
+make sure to like this video
+
+and subscribe for more.
 `.trim();
 }
 
-// ===== TITLE + VIEW BOOST =====
+// ===== TITLE =====
 function buildTitle(script) {
-  const base = script.split("\n")[0];
-  return (base + " #shorts #dating #relationship #viral").substring(0, 90);
+  return (script.split("\n")[0] + " #dating #relationship #viral #shorts").substring(0, 90);
 }
 
 // ===== IMAGES =====
 function getImages() {
-  const files = fs.readdirSync("images").filter(f => /\.(jpg|png|jpeg)$/i.test(f));
+  const files = fs.readdirSync("images")
+    .filter(f => /\.(jpg|jpeg|png)$/i.test(f));
+
   if (files.length < 4) throw new Error("Need at least 4 images");
 
   return files.sort(() => Math.random() - 0.5).slice(0, 4).map(f => "images/" + f);
@@ -107,7 +143,7 @@ function okAudio(f) {
   catch { return false; }
 }
 
-// ===== CINEMATIC VIDEO =====
+// ===== VIDEO (ULTRA STABLE) =====
 function createVideo(images, audio, output) {
   return new Promise((resolve, reject) => {
 
@@ -116,28 +152,14 @@ function createVideo(images, audio, output) {
 
     const music = "music/" + musicFiles[Math.floor(Math.random() * musicFiles.length)];
 
-    const duration = 10;
+    // 30s per image = 2 min total
+    const inputs = images.map(img => `-loop 1 -t 30 -i "${img}"`).join(" ");
 
-    const inputs = images.map(img => `-loop 1 -t ${duration} -i "${img}"`).join(" ");
+    const cmd = `"${ffmpegPath}" -y ${inputs} -i "${audio}" -i "${music}" \
+-filter_complex "[0:v]scale=1080:1920,setsar=1[v0];[1:v]scale=1080:1920,setsar=1[v1];[2:v]scale=1080:1920,setsar=1[v2];[3:v]scale=1080:1920,setsar=1[v3];[v0][v1][v2][v3]concat=n=4:v=1:a=0[v];[4:a]volume=1[a1];[5:a]volume=0.1[a2];[a1][a2]amix=inputs=2:duration=first[a]" \
+-map "[v]" -map "[a]" -shortest -preset ultrafast -r 24 -pix_fmt yuv420p "${output}"`;
 
-    const filter = `
-[0:v]scale=1080:1920,setsar=1,zoompan=z='min(zoom+0.0015,1.15)':d=300[v0];
-[1:v]scale=1080:1920,setsar=1,zoompan=z='min(zoom+0.0015,1.15)':d=300[v1];
-[2:v]scale=1080:1920,setsar=1,zoompan=z='min(zoom+0.0015,1.15)':d=300[v2];
-[3:v]scale=1080:1920,setsar=1,zoompan=z='min(zoom+0.0015,1.15)':d=300[v3];
-
-[v0][v1]xfade=transition=fade:duration=0.5:offset=9[v01];
-[v01][v2]xfade=transition=fade:duration=0.5:offset=19[v02];
-[v02][v3]xfade=transition=fade:duration=0.5:offset=29,format=yuv420p[v];
-
-[4:a]volume=1[a1];
-[5:a]volume=0.15[a2];
-[a1][a2]amix=inputs=2:duration=first[a]
-`;
-
-    const cmd = `"${ffmpegPath}" -y ${inputs} -i "${audio}" -i "${music}" -filter_complex "${filter}" -map "[v]" -map "[a]" -shortest -r 30 -pix_fmt yuv420p "${output}"`;
-
-    exec(cmd, (err, stdout, stderr) => {
+    exec(cmd, { maxBuffer: 1024 * 1024 * 10 }, (err, stdout, stderr) => {
       if (err) {
         console.log(stderr);
         reject(new Error("FFmpeg failed"));
