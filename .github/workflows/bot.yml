@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
   schedule:
-    - cron: '0 0 * * *'   # 7 AM MM
+    - cron: '0 0 * * *'   # 7 AM Myanmar
     - cron: '0 5 * * *'   # 12 PM
     - cron: '0 12 * * *'  # 7 PM
 
@@ -18,20 +18,31 @@ jobs:
     timeout-minutes: 45
 
     steps:
-      - name: Checkout
+      # ===== CHECKOUT =====
+      - name: Checkout Repo
         uses: actions/checkout@v4
 
+      # ===== NODE =====
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20   # 🔥 FIX (24 unstable)
+          node-version: 20
 
-      - name: Install FFmpeg
-        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      # ===== SYSTEM DEPENDENCIES =====
+      - name: Install FFmpeg + Python
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg python3 python3-pip
 
-      - name: Install deps
+      # ===== EDGE TTS (IMPORTANT FIX) =====
+      - name: Install edge-tts
+        run: pip3 install edge-tts
+
+      # ===== NODE PACKAGES =====
+      - name: Install Node Packages
         run: npm install
 
+      # ===== RUN BOT =====
       - name: Run Bot
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}

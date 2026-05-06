@@ -1,34 +1,42 @@
 const { exec } = require("child_process");
 const fs = require("fs");
 
-function createVoice(text) {
+function runTTS(text, output) {
   return new Promise((resolve, reject) => {
 
-    const filePath = `voice/voice_${Date.now()}.mp3`;
+    const cmd = `edge-tts --text "${text.replace(/"/g, "'")}" --write-media "${output}"`;
 
-    // 🔥 Edge TTS command (SUPER STABLE)
-    const command = `edge-tts --voice en-US-AriaNeural --text "${text.replace(/"/g, '')}" --write-media "${filePath}"`;
-
-    exec(command, (error) => {
-      if (error) {
-        return reject(new Error("Edge TTS failed"));
-      }
-
-      // 🔥 validate file
-      if (!fs.existsSync(filePath)) {
-        return reject(new Error("Voice not created"));
-      }
-
-      const size = fs.statSync(filePath).size;
-
-      if (size < 10000) {
-        return reject(new Error("Voice corrupted"));
-      }
-
-      resolve(filePath);
+    exec(cmd, (err, stdout, stderr) => {
+      if (err) reject(stderr);
+      else resolve(output);
     });
 
   });
+}
+
+async function createVoice(text) {
+  const output = `voice/voice_${Date.now()}.mp3`;
+
+  let attempts = 0;
+
+  while (attempts < 3) {
+    try {
+      await runTTS(text, output);
+
+      if (fs.existsSync(output) && fs.statSync(output).size > 5000) {
+        return output;
+      }
+
+      throw new Error("invalid audio");
+
+    } catch (e) {
+      attempts++;
+      console.log(`TTS retry ${attempts}`);
+      await new Promise(r => setTimeout(r, 2000));
+    }
+  }
+
+  throw new Error("Edge TTS failed after retries");
 }
 
 module.exports = { createVoice };
