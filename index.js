@@ -38,7 +38,7 @@ function cleanTitle(text) {
     .substring(0, 80);
 }
 
-// ===== VIRAL SCRIPT ENGINE =====
+// ===== VIRAL SCRIPT =====
 function pick(arr) {
   return arr[Math.floor(Math.random() * arr.length)];
 }
@@ -47,8 +47,7 @@ const hooks = [
   "If they do this, they were never serious about you.",
   "This is the biggest dating mistake people ignore.",
   "One sign someone is emotionally unavailable.",
-  "If they make you feel this way, walk away immediately.",
-  "This truth will save you years of heartbreak."
+  "If they make you feel this way, walk away.",
 ];
 
 const patterns = [
@@ -61,18 +60,12 @@ const patterns = [
     setup: "They say they like you but never make real plans.",
     twist: "Words without effort are manipulation.",
     lesson: "Watch actions, not promises."
-  },
-  {
-    setup: "They come back only when you start moving on.",
-    twist: "They do not want you — they want access to you.",
-    lesson: "Do not confuse attention with love."
   }
 ];
 
 const endings = [
   "Healthy love feels peaceful, not confusing.",
-  "You deserve clarity, not mixed signals.",
-  "Stop chasing people who benefit from your confusion."
+  "You deserve clarity, not mixed signals."
 ];
 
 function generateScript() {
@@ -86,14 +79,12 @@ ${h}
 ${p.setup}
 
 At first, it feels exciting.
-You think they care.
 
-But slowly,
-confusion starts growing.
+But slowly, confusion starts growing.
 
 You begin questioning yourself.
 
-But listen carefully:
+Here is the truth:
 
 ${p.twist}
 
@@ -102,7 +93,6 @@ does not create confusion.
 
 They show up.
 They stay consistent.
-They make things clear.
 
 ${p.lesson}
 
@@ -113,21 +103,14 @@ that is not love.
 
 That is convenience.
 
-And convenience
-will never build a real relationship.
-
 ${e}
 
 So ask yourself:
 
 Do they bring peace?
+Or confusion?
 
-Or do they bring confusion?
-
-Because that answer
-can change your life.
-
-And if this opened your eyes,
+And if this helped you,
 
 like this video
 and subscribe for more.
@@ -156,7 +139,14 @@ function okAudio(f) {
   }
 }
 
-// ===== VIDEO =====
+// ===== FORMAT TIME =====
+function formatTime(sec) {
+  const s = String(sec % 60).padStart(2, "0");
+  const m = String(Math.floor(sec / 60)).padStart(2, "0");
+  return `00:${m}:${s},000`;
+}
+
+// ===== VIDEO + SUBTITLE =====
 function createVideo(images, audio, output) {
   return new Promise((resolve, reject) => {
 
@@ -168,6 +158,30 @@ function createVideo(images, audio, output) {
     }
 
     const music = "music/" + musicFiles[Math.floor(Math.random() * musicFiles.length)];
+
+    // ===== CREATE SUBTITLE =====
+    const subtitleFile = "temp.srt";
+    const lines = [
+      "Biggest dating mistake",
+      "people ignore",
+      "Confusion is not love",
+      "Consistency is love",
+      "Remember this"
+    ];
+
+    let srt = "";
+    let time = 0;
+
+    lines.forEach((line, i) => {
+      srt += `${i + 1}
+${formatTime(time)} --> ${formatTime(time + 3)}
+${line}
+
+`;
+      time += 3;
+    });
+
+    fs.writeFileSync(subtitleFile, srt);
 
     const inputs = images.map(img => `-loop 1 -t 20 -i "${img}"`).join(" ");
 
@@ -183,7 +197,10 @@ function createVideo(images, audio, output) {
 [a1][a2]amix=inputs=2:duration=first[a]
 `;
 
-    const cmd = `"${ffmpegPath}" -y ${inputs} -i "${audio}" -i "${music}" -filter_complex "${filter}" -map "[v]" -map "[a]" -shortest -preset ultrafast -r 24 -pix_fmt yuv420p "${output}"`;
+    const cmd = `"${ffmpegPath}" -y ${inputs} -i "${audio}" -i "${music}" \
+-filter_complex "${filter}" \
+-vf "subtitles=${subtitleFile}:force_style='Fontsize=42,PrimaryColour=&HFFFFFF&,OutlineColour=&H000000&,BorderStyle=3,Outline=2,Alignment=2'" \
+-map "[v]" -map "[a]" -shortest -preset ultrafast -r 24 -pix_fmt yuv420p "${output}"`;
 
     exec(cmd, (err, stdout, stderr) => {
       if (err) {
@@ -219,7 +236,6 @@ async function run() {
     await uploadVideo(out, cleanTitle(script), script);
 
     await notify("✅ Uploaded");
-    console.log("DONE");
 
   } catch (e) {
     console.log("ERROR:", e.message);
