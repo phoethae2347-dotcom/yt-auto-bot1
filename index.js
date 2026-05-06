@@ -29,7 +29,7 @@ if (process.env.GOOGLE_TOKEN) {
   fs.writeFileSync("token.json", process.env.GOOGLE_TOKEN);
 }
 
-// ===== TITLE FIX (IMPORTANT) =====
+// ===== TITLE =====
 function cleanTitle(text) {
   return text
     .replace(/\n/g, " ")
@@ -38,50 +38,97 @@ function cleanTitle(text) {
     .substring(0, 80);
 }
 
-// ===== SCRIPT =====
+// ===== VIRAL SCRIPT ENGINE =====
+function pick(arr) {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+const hooks = [
+  "If they do this, they were never serious about you.",
+  "This is the biggest dating mistake people ignore.",
+  "One sign someone is emotionally unavailable.",
+  "If they make you feel this way, walk away immediately.",
+  "This truth will save you years of heartbreak."
+];
+
+const patterns = [
+  {
+    setup: "They text you at night but ignore you during the day.",
+    twist: "That is not love. That is convenience.",
+    lesson: "Real interest shows consistency."
+  },
+  {
+    setup: "They say they like you but never make real plans.",
+    twist: "Words without effort are manipulation.",
+    lesson: "Watch actions, not promises."
+  },
+  {
+    setup: "They come back only when you start moving on.",
+    twist: "They do not want you — they want access to you.",
+    lesson: "Do not confuse attention with love."
+  }
+];
+
+const endings = [
+  "Healthy love feels peaceful, not confusing.",
+  "You deserve clarity, not mixed signals.",
+  "Stop chasing people who benefit from your confusion."
+];
+
 function generateScript() {
+  const h = pick(hooks);
+  const p = pick(patterns);
+  const e = pick(endings);
+
   return `
-If someone does this in dating, they were never serious about you.
+${h}
 
-They give you attention only when it's convenient.
+${p.setup}
 
-At first, it feels good.
+At first, it feels exciting.
 You think they care.
 
-But slowly, confusion starts growing.
+But slowly,
+confusion starts growing.
 
-You start asking yourself questions.
-You wonder if you're overthinking.
+You begin questioning yourself.
 
-But you're not.
+But listen carefully:
 
-Here is the truth:
+${p.twist}
 
-People who truly want you do not create confusion.
+Someone who truly wants you
+does not create confusion.
 
-They show consistency.
-They show effort.
-They show clarity.
+They show up.
+They stay consistent.
+They make things clear.
 
-If someone only shows up when it benefits them,
+${p.lesson}
+
+If someone only appears
+when it benefits them,
+
 that is not love.
 
 That is convenience.
 
-And convenience will never build a real relationship.
+And convenience
+will never build a real relationship.
 
-Healthy love feels calm, not confusing.
+${e}
 
-So before giving someone another chance,
-ask yourself:
+So ask yourself:
 
-Do they bring peace,
-or do they bring confusion?
+Do they bring peace?
+
+Or do they bring confusion?
 
 Because that answer
-can save you years.
+can change your life.
 
-And if this helped you,
+And if this opened your eyes,
+
 like this video
 and subscribe for more.
 `.trim();
@@ -109,7 +156,7 @@ function okAudio(f) {
   }
 }
 
-// ===== VIDEO (FAST + STABLE + MUSIC) =====
+// ===== VIDEO =====
 function createVideo(images, audio, output) {
   return new Promise((resolve, reject) => {
 
@@ -142,9 +189,7 @@ function createVideo(images, audio, output) {
       if (err) {
         console.log(stderr);
         reject(new Error("FFmpeg failed"));
-      } else {
-        resolve();
-      }
+      } else resolve();
     });
   });
 }
@@ -152,6 +197,8 @@ function createVideo(images, audio, output) {
 // ===== MAIN =====
 async function run() {
   try {
+    console.log("START RUN");
+
     const script = generateScript();
 
     await notify("🎙 Voice...");
@@ -166,14 +213,18 @@ async function run() {
 
     await createVideo(images, voice, out);
 
+    if (!fs.existsSync(out)) throw new Error("Video not created");
+
     await notify("☁ Upload...");
     await uploadVideo(out, cleanTitle(script), script);
 
     await notify("✅ Uploaded");
+    console.log("DONE");
 
   } catch (e) {
-    console.log(e);
+    console.log("ERROR:", e.message);
     await notify("❌ ERROR: " + e.message);
+    process.exit(1);
   }
 }
 

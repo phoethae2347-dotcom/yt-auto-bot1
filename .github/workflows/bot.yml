@@ -1,45 +1,38 @@
-name: Telegram Cloud Bot
+name: YouTube Auto Bot
 
 concurrency:
   group: youtube-bot
   cancel-in-progress: true
-  
+
 on:
   workflow_dispatch:
 
   schedule:
-    - cron: '0 0 * * *'
-    - cron: '0 5 * * *'
-    - cron: '0 12 * * *'
+    - cron: '0 0 * * *'   # 7 AM MM
+    - cron: '0 5 * * *'   # 12 PM
+    - cron: '0 12 * * *'  # 7 PM
 
 jobs:
   run-bot:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
 
     steps:
-      - name: Checkout Repo
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: 20   # 🔥 FIX (24 unstable)
 
-      - name: Install FFmpeg + Python
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y ffmpeg python3 python3-pip
+      - name: Install FFmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
 
-      - name: Install Python Packages
-        run: |
-          pip3 install -r requirements.txt
-          pip3 install edge-tts
-
-      - name: Install Node Packages
+      - name: Install deps
         run: npm install
 
-      - name: Run Telegram AI Bot
+      - name: Run Bot
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
