@@ -32,43 +32,115 @@ async function notify(msg) {
 // ===== SCRIPT =====
 function generateScript() {
   return `
-If they confuse you, they were never serious about you.
+const hooks = [
+  "If someone does this to you, they were never serious about you.",
+  "This relationship truth will save you years of heartbreak.",
+  "Stop ignoring this red flag before it ruins your peace.",
+  "If they keep doing this, you need to walk away.",
+  "One dating truth nobody tells you until it's too late."
+];
+
+function pick(arr){
+  return arr[Math.floor(Math.random()*arr.length)];
+}
+
+function generateScript() {
+  const hook = pick(hooks);
+
+  return `
+${hook}
 
 At first, it feels like attention.
 
-But slowly, it turns into confusion.
+They text you just enough.
 
-You begin questioning yourself.
+They give you little moments of affection.
 
-But the truth is simple.
+And that makes you believe something meaningful is growing.
 
-Confusion is not love.
+You start hoping.
 
-People who truly want you bring peace.
+You start investing your emotions.
 
-They show consistency.
+You start imagining a future.
 
-They show effort.
+But then, something slowly changes.
 
-If someone only appears when convenient,
+Their replies become inconsistent.
+
+Their energy becomes confusing.
+
+Some days they act interested.
+
+Other days they feel distant.
+
+And suddenly, you are left questioning yourself.
+
+You wonder if you said something wrong.
+
+You wonder if you're asking for too much.
+
+You wonder if maybe you are simply overthinking.
+
+But listen carefully.
+
+You are not overthinking.
+
+You are responding to inconsistency.
+
+And inconsistency creates emotional chaos.
+
+Here is the truth most people learn too late.
+
+Confusion is never a sign of love.
+
+Real love does not make you feel unstable every day.
+
+People who genuinely want you
+do not leave you guessing.
+
+They show up.
+
+They communicate.
+
+They make their intentions clear.
+
+Because when someone values your presence,
+they do not risk losing you through mixed signals.
+
+If someone only appears when they are lonely,
+
+if they only give attention when it is convenient,
+
+if they disappear the moment effort is required,
 
 that is not love.
 
-That is convenience.
+That is emotional convenience.
+
+And emotional convenience will keep draining you for years if you let it.
 
 Healthy love feels calm.
 
-Not confusing.
+Healthy love feels secure.
 
-So ask yourself:
+Healthy love does not force you to decode every message.
 
-Do they bring peace or confusion?
+So ask yourself this today.
 
-Because that answer can save you years.
+Do they bring peace into your life?
 
-And if this helped you,
+Or do they bring anxiety every single day?
 
-like this video and subscribe for more.
+Because the answer to that question
+
+can save you years of heartbreak.
+
+And if this message opened your eyes,
+
+like this video,
+
+and subscribe for more.
 `.trim();
 }
 
