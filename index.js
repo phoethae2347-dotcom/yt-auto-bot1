@@ -33,29 +33,24 @@ If they confuse you, they are not serious about you.
 
 At first, it feels like attention.
 
-But slowly,
-it turns into confusion.
+But slowly, it turns into confusion.
 
 Here is the truth:
 
 Confusion is not love.
 
-People who truly want you
-bring clarity.
+People who truly want you bring clarity.
 
 They show consistency.
 
-If someone only shows up
-when it benefits them,
-
+If someone only shows up when it benefits them,
 that is not love.
 
 That is convenience.
 
 So ask yourself:
 
-Do they bring peace,
-or confusion?
+Do they bring peace, or confusion?
 
 And if this helped you,
 like and subscribe.
@@ -87,33 +82,44 @@ function createVideo(images, audio, output) {
 
     const music = "music/" + musicFiles[Math.floor(Math.random() * musicFiles.length)];
 
-    // ===== CREATE SUBTITLE FILE =====
+    // subtitle file
     const subtitleFile = "sub.srt";
 
     const srt = `1
-00:00:00,000 --> 00:00:04,000
+00:00:00,000 --> 00:00:05,000
 Confusion is not love
 
 2
-00:00:04,000 --> 00:00:08,000
+00:00:05,000 --> 00:00:10,000
 Real love brings clarity
 
 3
-00:00:08,000 --> 00:00:12,000
+00:00:10,000 --> 00:00:15,000
 Consistency matters
-
-4
-00:00:12,000 --> 00:00:16,000
-Remember this
 `;
 
     fs.writeFileSync(subtitleFile, srt);
 
-    // ===== INPUTS =====
-    const inputs = images.map(img => `-loop 1 -t 15 -i "${img}"`).join(" ");
+    // IMPORTANT: SAME DURATION PER IMAGE
+    const duration = 15;
 
-    // ===== COMMAND (NO \ BREAK) =====
-    const cmd = `"${ffmpegPath}" -y ${inputs} -i "${audio}" -i "${music}" -filter_complex "[0:v]scale=1080:1920,setsar=1[v0];[1:v]scale=1080:1920,setsar=1[v1];[2:v]scale=1080:1920,setsar=1[v2];[3:v]scale=1080:1920,setsar=1[v3];[v0][v1][v2][v3]concat=n=4:v=1:a=0[v];[4:a]volume=1[a1];[5:a]volume=0.15[a2];[a1][a2]amix=inputs=2:duration=first[a]" -vf "subtitles=${subtitleFile}" -map "[v]" -map "[a]" -shortest -r 24 -pix_fmt yuv420p "${output}"`;
+    const inputs = images.map(img => `-loop 1 -t ${duration} -i "${img}"`).join(" ");
+
+    // FIXED FILTER (NO CONFLICT)
+    const filter = `
+[0:v]scale=1080:1920,setsar=1[v0];
+[1:v]scale=1080:1920,setsar=1[v1];
+[2:v]scale=1080:1920,setsar=1[v2];
+[3:v]scale=1080:1920,setsar=1[v3];
+[v0][v1][v2][v3]concat=n=4:v=1:a=0[vbase];
+[vbase]subtitles=${subtitleFile}[v];
+
+[4:a]volume=1[a1];
+[5:a]volume=0.15[a2];
+[a1][a2]amix=inputs=2:duration=first[a]
+`;
+
+    const cmd = `"${ffmpegPath}" -y ${inputs} -i "${audio}" -i "${music}" -filter_complex "${filter}" -map "[v]" -map "[a]" -shortest -r 24 -pix_fmt yuv420p "${output}"`;
 
     exec(cmd, (err, stdout, stderr) => {
       if (err) {
