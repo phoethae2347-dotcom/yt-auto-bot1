@@ -9,7 +9,7 @@ const bot = new TelegramBot(process.env.BOT_TOKEN, { polling: false });
 const CHAT_ID = process.env.CHAT_ID;
 const ffmpegPath = "ffmpeg";
 
-// ===== GOOGLE SECRET FILE CREATE =====
+// ===== GOOGLE AUTH =====
 if (process.env.GOOGLE_CREDENTIALS) {
   fs.writeFileSync("credentials.json", process.env.GOOGLE_CREDENTIALS.replace(/\\n/g, "\n"));
 }
@@ -80,13 +80,8 @@ function buildTitle(script) {
 // ===== IMAGES =====
 function getImages() {
   const files = fs.readdirSync("images").filter(f => /\.(jpg|jpeg|png)$/i.test(f));
-  if (files.length < 4) throw new Error("Need at least 4 images");
-
-  const arr = [];
-  while (arr.length < 6) {
-    arr.push(files[arr.length % files.length]);
-  }
-  return arr.map(f => "images/" + f);
+  if (files.length < 4) throw new Error("Need 4 images");
+  return files.slice(0, 4).map(f => "images/" + f);
 }
 
 // ===== AUDIO CHECK =====
@@ -95,7 +90,7 @@ function okAudio(f) {
   catch { return false; }
 }
 
-// ===== VIDEO =====
+// ===== VIDEO FINAL STABLE =====
 function createVideo(images, audio, output) {
   return new Promise((resolve, reject) => {
 
@@ -104,28 +99,28 @@ function createVideo(images, audio, output) {
 
     const music = "music/" + musicFiles[0];
 
-    const inputs = images.map(img => `-loop 1 -t 20 -i "${img}"`).join(" ");
+    const inputs = images.map(img => `-loop 1 -t 30 -framerate 24 -i "${img}"`).join(" ");
 
     const filter = `
-[0:v]scale=1080:1920,format=yuv420p[v0];
-[1:v]scale=1080:1920,format=yuv420p[v1];
-[2:v]scale=1080:1920,format=yuv420p[v2];
-[3:v]scale=1080:1920,format=yuv420p[v3];
-[4:v]scale=1080:1920,format=yuv420p[v4];
-[5:v]scale=1080:1920,format=yuv420p[v5];
+[0:v]scale=1080:1920,setsar=1,fps=24[v0];
+[1:v]scale=1080:1920,setsar=1,fps=24[v1];
+[2:v]scale=1080:1920,setsar=1,fps=24[v2];
+[3:v]scale=1080:1920,setsar=1,fps=24[v3];
 
-[v0][v1][v2][v3][v4][v5]concat=n=6:v=1:a=0[v];
+[v0][v1]xfade=transition=fade:duration=1:offset=29[v01];
+[v01][v2]xfade=transition=fade:duration=1:offset=58[v02];
+[v02][v3]xfade=transition=fade:duration=1:offset=87,format=yuv420p[v];
 
-[6:a]volume=1[a1];
-[7:a]volume=0.08[a2];
+[4:a]volume=1[a1];
+[5:a]volume=0.08[a2];
 [a1][a2]amix=inputs=2:duration=first[a]
 `;
 
-    const cmd = `${ffmpegPath} -y ${inputs} -i "${audio}" -i "${music}" -filter_complex "${filter}" -map "[v]" -map "[a]" -shortest -preset ultrafast -r 24 -pix_fmt yuv420p "${output}"`;
+    const cmd = `${ffmpegPath} -y ${inputs} -i "${audio}" -i "${music}" -filter_complex "${filter}" -map "[v]" -map "[a]" -shortest -preset ultrafast "${output}"`;
 
     exec(cmd, { maxBuffer: 1024 * 1024 * 50 }, (err, stdout, stderr) => {
       if (err) {
-        console.log(stderr);
+        console.log("FFMPEG STDERR:\n", stderr);
         reject(new Error("FFmpeg failed"));
       } else resolve();
     });
@@ -141,14 +136,12 @@ async function run() {
 
     await notify("🎙 Voice...");
     const voice = await createVoice(script);
-
     if (!okAudio(voice)) throw new Error("Audio invalid");
 
     await notify("🎬 Video...");
     const images = getImages();
 
     const out = `output/video_${Date.now()}.mp4`;
-
     await createVideo(images, voice, out);
 
     if (!fs.existsSync(out)) throw new Error("Video missing");
