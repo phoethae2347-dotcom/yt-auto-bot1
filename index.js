@@ -1,6 +1,6 @@
 require("dotenv").config();
 const fs = require("fs");
-const { exec } = require("child_process");
+const { exec, execSync } = require("child_process");
 const TelegramBot = require("node-telegram-bot-api");
 const { createVoice } = require("./createVoice");
 const { uploadVideo } = require("./upload");
@@ -29,46 +29,75 @@ if (process.env.GOOGLE_TOKEN) {
   fs.writeFileSync("token.json", process.env.GOOGLE_TOKEN.replace(/\\n/g, "\n"));
 }
 
-// ===== SCRIPT =====
+// ===== SCRIPT (≈2 MIN) =====
 function generateScript() {
   return `
 If they confuse you, they were never serious about you.
 
 At first, it feels like attention.
 
-But slowly, it turns into confusion.
+They message you.
+They show interest.
+
+And you think it's real.
+
+But slowly,
+things start changing.
+
+Replies slow down.
+
+Effort disappears.
+
+And confusion grows.
+
+You start questioning yourself.
+
+But you're not wrong.
+
+Here is the truth:
 
 Confusion is not love.
 
-People who truly want you bring clarity.
+People who truly want you
+bring clarity.
 
-If someone only shows up when it benefits them,
+They show consistency.
+
+They show effort.
+
+If someone only shows up
+when it benefits them,
+
 that is not love.
 
 That is convenience.
 
+And convenience will never build
+a real relationship.
+
+Healthy love feels calm.
+
+Not confusing.
+
 So ask yourself:
 
-Do they bring peace,
-or confusion?
+Do they bring peace?
 
-Like and subscribe for more.
+Or do they bring stress?
+
+Because that answer
+can save you years.
+
+And if this helped you,
+
+like this video
+and subscribe for more.
 `.trim();
 }
 
 // ===== TITLE =====
 function buildTitle(script) {
-  return (script.split("\n")[0] + " #dating #viral").substring(0, 90);
-}
-
-// ===== IMAGES =====
-function getImages() {
-  const files = fs.readdirSync("images")
-    .filter(f => /\.(jpg|jpeg|png)$/i.test(f));
-
-  if (files.length < 4) throw new Error("Need 4 images");
-
-  return files.sort(() => Math.random() - 0.5).slice(0, 4).map(f => "images/" + f);
+  return (script.split("\n")[0] + " #dating #viral #relationship").substring(0, 90);
 }
 
 // ===== AUDIO CHECK =====
@@ -77,7 +106,23 @@ function okAudio(f) {
   catch { return false; }
 }
 
-// ===== VIDEO (FIXED 100%) =====
+// ===== GET AUDIO DURATION =====
+function getAudioDuration(file) {
+  const out = execSync(`ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "${file}"`);
+  return Math.ceil(parseFloat(out.toString()));
+}
+
+// ===== IMAGES =====
+function getImages() {
+  const files = fs.readdirSync("images")
+    .filter(f => /\.(jpg|jpeg|png)$/i.test(f));
+
+  if (files.length < 4) throw new Error("Need at least 4 images");
+
+  return files.sort(() => Math.random() - 0.5).slice(0, 4).map(f => "images/" + f);
+}
+
+// ===== VIDEO (AUTO SYNC) =====
 function createVideo(images, audio, output) {
   return new Promise((resolve, reject) => {
 
@@ -86,19 +131,22 @@ function createVideo(images, audio, output) {
 
     const music = "music/" + musicFiles[Math.floor(Math.random() * musicFiles.length)];
 
-    // ✅ FIX: each image 10 sec only (NO infinite loop)
-    const inputs = images.map(img => `-loop 1 -t 10 -i "${img}"`).join(" ");
+    // 🔥 AUTO LENGTH
+    const duration = getAudioDuration(audio);
+    const perImage = Math.ceil(duration / images.length);
+
+    const inputs = images.map(img => `-loop 1 -t ${perImage} -i "${img}"`).join(" ");
 
     const filter = `
-[0:v]scale=1080:1920,zoompan=z='min(zoom+0.001,1.2)':d=250[v0];
-[1:v]scale=1080:1920,zoompan=z='min(zoom+0.001,1.2)':d=250[v1];
-[2:v]scale=1080:1920,zoompan=z='min(zoom+0.001,1.2)':d=250[v2];
-[3:v]scale=1080:1920,zoompan=z='min(zoom+0.001,1.2)':d=250[v3];
+[0:v]scale=1080:1920,zoompan=z='min(zoom+0.0015,1.2)':d=300[v0];
+[1:v]scale=1080:1920,zoompan=z='min(zoom+0.0015,1.2)':d=300[v1];
+[2:v]scale=1080:1920,zoompan=z='min(zoom+0.0015,1.2)':d=300[v2];
+[3:v]scale=1080:1920,zoompan=z='min(zoom+0.0015,1.2)':d=300[v3];
 
 [v0][v1][v2][v3]concat=n=4:v=1:a=0[v];
 
 [4:a]volume=1[a1];
-[5:a]volume=0.15[a2];
+[5:a]volume=0.12[a2];
 [a1][a2]amix=inputs=2:duration=first[a]
 `;
 
@@ -131,8 +179,6 @@ async function run() {
     const out = `output/video_${Date.now()}.mp4`;
 
     await createVideo(images, voice, out);
-
-    if (!fs.existsSync(out)) throw new Error("Video missing");
 
     await notify("☁ Upload...");
     await uploadVideo(out, buildTitle(script), script);
