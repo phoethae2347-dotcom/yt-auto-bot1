@@ -114,13 +114,13 @@ function createVideo(images, audio, output) {
 
     const music = "music/" + musicFiles[Math.floor(Math.random() * musicFiles.length)];
 
-    const inputs = images.map(img => `-loop 1 -t 30 -i "${img}"`).join(" ");
+    const inputs = images.map(img => `-loop 1 -t 20 -i "${img}"`).join(" ");
 
     const filter = `
-[0:v]scale=1080:1920,zoompan=z='min(zoom+0.0015,1.1)':d=900:s=1080x1920[v0];
-[1:v]scale=1080:1920,zoompan=z='min(zoom+0.0015,1.1)':d=900:s=1080x1920[v1];
-[2:v]scale=1080:1920,zoompan=z='min(zoom+0.0015,1.1)':d=900:s=1080x1920[v2];
-[3:v]scale=1080:1920,zoompan=z='min(zoom+0.0015,1.1)':d=900:s=1080x1920[v3];
+[0:v]scale=1080:1920,setsar=1[v0];
+[1:v]scale=1080:1920,setsar=1[v1];
+[2:v]scale=1080:1920,setsar=1[v2];
+[3:v]scale=1080:1920,setsar=1[v3];
 [v0][v1][v2][v3]concat=n=4:v=1:a=0[v];
 
 [4:a]volume=1.0[a1];
@@ -128,7 +128,7 @@ function createVideo(images, audio, output) {
 [a1][a2]amix=inputs=2:duration=first[a]
 `;
 
-    const cmd = `"${ffmpegPath}" -y ${inputs} -i "${audio}" -i "${music}" -filter_complex "${filter}" -map "[v]" -map "[a]" -shortest -r 30 -pix_fmt yuv420p "${output}"`;
+    const cmd = `"${ffmpegPath}" -y ${inputs} -i "${audio}" -i "${music}" -filter_complex "${filter}" -map "[v]" -map "[a]" -shortest -preset ultrafast -r 24 -pix_fmt yuv420p "${output}"`;
 
     exec(cmd, (err, stdout, stderr) => {
       if (err) {
