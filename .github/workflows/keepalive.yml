@@ -2,14 +2,24 @@ name: Keepalive
 
 on:
   schedule:
-    - cron: '0 0 * * 0'  # တပတ်တစ်ကြိမ် run
+    - cron: '0 0 1 * *'
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   keepalive:
     runs-on: ubuntu-latest
-    permissions:
-      actions: write
     steps:
-      - uses: actions/checkout@v4
-      - uses: gautamkrishnar/keepalive-workflow@v2
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Update keepalive timestamp
+        run: |
+          echo "Last keepalive: $(date -u)" > .keepalive
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .keepalive
+          git diff --staged --quiet || git commit -m "chore: keepalive [skip ci]"
+          git push
