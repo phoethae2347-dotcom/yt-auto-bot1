@@ -7,10 +7,15 @@ concurrency:
 on:
   workflow_dispatch:
 
-  schedule:
-    - cron: '0 0 * * *'   # 7 AM Myanmar
-    - cron: '0 5 * * *'   # 12 PM
-    - cron: '0 12 * * *'  # 7 PM
+   schedule:
+    # 7:00 AM Myanmar
+    - cron: '30 0 * * *'
+
+    # 12:00 PM Myanmar
+    - cron: '30 5 * * *'
+
+    # 7:00 PM Myanmar
+    - cron: '30 12 * * *'
 
 jobs:
   run-bot:
