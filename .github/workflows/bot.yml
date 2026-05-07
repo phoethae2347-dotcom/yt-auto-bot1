@@ -1,24 +1,19 @@
 name: YouTube Auto Bot
 
-concurrency:
-  group: youtube-bot
-  cancel-in-progress: true
-
 on:
   workflow_dispatch:
 
-    # test 
-
   schedule:
+    # every 10 min test
     - cron: '*/10 * * * *'
-  
-    # 7:00 AM Myanmar
+
+    # Myanmar 7 AM
     - cron: '30 0 * * *'
 
-    # 12:00 PM Myanmar
+    # Myanmar 12 PM
     - cron: '30 5 * * *'
 
-    # 7:00 PM Myanmar
+    # Myanmar 7 PM
     - cron: '30 12 * * *'
 
 jobs:
