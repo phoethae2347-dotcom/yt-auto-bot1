@@ -172,18 +172,19 @@ function createVideo(images, audio, output) {
     const music = "music/" + musicFiles[0];
     const inputs = images.map(img => `-loop 1 -t 30 -framerate 24 -i "${img}"`).join(" ");
 
-    const filter = `
-[0:v]scale=1080:1920,setsar=1,fps=24[v0];
-[1:v]scale=1080:1920,setsar=1,fps=24[v1];
-[2:v]scale=1080:1920,setsar=1,fps=24[v2];
-[3:v]scale=1080:1920,setsar=1,fps=24[v3];
-[v0][v1]xfade=transition=fade:duration=1:offset=29[v01];
-[v01][v2]xfade=transition=fade:duration=1:offset=58[v02];
-[v02][v3]xfade=transition=fade:duration=1:offset=87,format=yuv420p[v];
-[4:a]volume=1[a1];
-[5:a]volume=0.08[a2];
-[a1][a2]amix=inputs=2:duration=first[a]
-`;
+   // ဒီနေရာမှာ filter string ကို inline ပြောင်း
+const filter = [
+  "[0:v]scale=1080:1920,setsar=1,fps=24[v0]",
+  "[1:v]scale=1080:1920,setsar=1,fps=24[v1]",
+  "[2:v]scale=1080:1920,setsar=1,fps=24[v2]",
+  "[3:v]scale=1080:1920,setsar=1,fps=24[v3]",
+  "[v0][v1]xfade=transition=fade:duration=1:offset=29[v01]",
+  "[v01][v2]xfade=transition=fade:duration=1:offset=58[v02]",
+  "[v02][v3]xfade=transition=fade:duration=1:offset=87,format=yuv420p[v]",
+  "[4:a]volume=1[a1]",
+  "[5:a]volume=0.08[a2]",
+  "[a1][a2]amix=inputs=2:duration=first[a]"
+].join(";");
 
     const cmd = `${ffmpegPath} -y ${inputs} -i "${audio}" -i "${music}" -filter_complex "${filter}" -map "[v]" -map "[a]" -shortest -preset ultrafast "${output}"`;
 
