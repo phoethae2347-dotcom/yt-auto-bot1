@@ -10,7 +10,7 @@ on:
     # test 
 
   schedule:
-    - cron:  '*/10 * * * *'
+    - cron: '*/10 * * * *'
   
     # 7:00 AM Myanmar
     - cron: '30 0 * * *'
