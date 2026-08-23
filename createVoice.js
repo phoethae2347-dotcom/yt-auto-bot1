@@ -1,42 +1,39 @@
-const { exec } = require("child_process");
+require("dotenv").config();
+
 const fs = require("fs");
+const path = require("path");
+const { execFile } = require("child_process");
+const { promisify } = require("util");
 
-function runTTS(text, output) {
-  return new Promise((resolve, reject) => {
+const execFileAsync = promisify(execFile);
+const ROOT = __dirname;
+const TTS_COMMAND = process.env.EDGE_TTS_PATH || "edge-tts";
 
-    const cmd = `edge-tts --text "${text.replace(/"/g, "'")}" --write-media "${output}"`;
-
-    exec(cmd, (err, stdout, stderr) => {
-      if (err) reject(stderr);
-      else resolve(output);
-    });
-
-  });
+async function runTTS(text, output) {
+  await execFileAsync(TTS_COMMAND, [
+    "--voice", process.env.TTS_VOICE || "en-US-JennyNeural",
+    "--text", text,
+    "--write-media", output,
+  ], { maxBuffer: 1024 * 1024 * 10 });
 }
 
 async function createVoice(text) {
-  const output = `voice/voice_${Date.now()}.mp3`;
+  const voiceDir = path.join(ROOT, "voice");
+  fs.mkdirSync(voiceDir, { recursive: true });
+  const output = path.join(voiceDir, `voice_${Date.now()}.mp3`);
 
-  let attempts = 0;
-
-  while (attempts < 3) {
+  for (let attempts = 1; attempts <= 3; attempts += 1) {
     try {
       await runTTS(text, output);
-
-      if (fs.existsSync(output) && fs.statSync(output).size > 5000) {
-        return output;
-      }
-
+      if (fs.existsSync(output) && fs.statSync(output).size > 5000) return output;
       throw new Error("invalid audio");
-
-    } catch (e) {
-      attempts++;
-      console.log(`TTS retry ${attempts}`);
-      await new Promise(r => setTimeout(r, 2000));
+    } catch (error) {
+      console.log(`TTS retry ${attempts}:`, error.message || error);
+      if (attempts < 3) await new Promise(resolve => setTimeout(resolve, 2000));
     }
   }
 
-  throw new Error("Edge TTS failed after retries");
+  throw new Error("Edge TTS failed after 3 attempts");
 }
 
 module.exports = { createVoice };

@@ -1,22 +1,17 @@
-name: YouTube Auto Bot
+name: Generate and review YouTube video
 
 on:
   workflow_dispatch:
-
   schedule:
-    # Myanmar 7 AM (UTC 00:30)
-    - cron: '30 0 * * *'
+    # Once daily; review the private upload before publishing.
+    - cron: "30 0 * * *"
 
-    # Myanmar 12 PM (UTC 05:30)
-    - cron: '30 5 * * *'
-
-    # Myanmar 7 PM (UTC 12:30)
-    - cron: '30 12 * * *'
-
-# ← တစ်ချိန်တည်း run နှစ်ခု မဖြစ်အောင်
 concurrency:
   group: youtube-bot
   cancel-in-progress: false
+
+permissions:
+  contents: read
 
 jobs:
   run-bot:
@@ -24,13 +19,14 @@ jobs:
     timeout-minutes: 30
 
     steps:
-      - name: Checkout Repo
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: npm
 
       - name: Install FFmpeg
         run: |
@@ -38,15 +34,20 @@ jobs:
           sudo apt-get install -y ffmpeg
 
       - name: Install edge-tts
-        run: pip3 install edge-tts --quiet
+        run: python3 -m pip install --quiet edge-tts
 
-      - name: Install Node Packages
+      - name: Install Node packages
         run: npm ci
 
-      - name: Run Bot
+      - name: Run bot
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
           GOOGLE_TOKEN: ${{ secrets.GOOGLE_TOKEN }}
           CHAT_ID: ${{ secrets.CHAT_ID }}
+          UPLOAD_PRIVACY_STATUS: private
+          ALLOW_PUBLIC_UPLOAD: "false"
+          TTS_VOICE: en-US-JennyNeural
+          DEFAULT_LANGUAGE: en
+          DEFAULT_AUDIO_LANGUAGE: en-US
         run: node index.js

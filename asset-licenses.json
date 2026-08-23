@@ -1,0 +1,42 @@
+{
+  "status": "needs_review",
+  "reviewedAt": null,
+  "owner": "REPLACE_WITH_CHANNEL_OWNER",
+  "images": [
+    "images/1.jpg",
+    "images/2.jpg",
+    "images/3.jpg",
+    "images/4.jpg",
+    "images/5.jpg",
+    "images/6.jpg",
+    "images/7.jpg",
+    "images/8.jpg",
+    "images/9.jpg",
+    "images/10.jpg",
+    "images/11.jpg",
+    "images/12.jpg",
+    "images/13.jpg",
+    "images/14.jpg",
+    "images/15.jpg",
+    "images/16.jpg",
+    "images/17.jpg",
+    "images/18.jpg",
+    "images/19.jpg",
+    "images/20.jpg",
+    "images/21.jpg",
+    "images/22.jpg",
+    "images/23.jpg",
+    "images/24.jpg",
+    "images/25.jpg",
+    "images/26.jpg",
+    "images/27.jpg",
+    "images/28.jpg",
+    "images/29.jpg"
+  ],
+  "music": [
+    "music/bg1.mp3",
+    "music/bg2.mp3",
+    "music/bg3.mp3"
+  ],
+  "credits": "Replace this line with the real creator/source, license name, license URL, download date, and attribution requirements for every asset before changing status to verified."
+}

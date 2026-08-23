@@ -1,35 +1,64 @@
 require("dotenv").config();
+
 const fs = require("fs");
-const { exec } = require("child_process");
+const path = require("path");
+const { execFile } = require("child_process");
+const { promisify } = require("util");
+const execFileAsync = promisify(execFile);
 const TelegramBot = require("node-telegram-bot-api");
 const { createVoice } = require("./createVoice");
 const { uploadVideo } = require("./upload");
 
-const bot = new TelegramBot(process.env.BOT_TOKEN, { polling: false });
+const bot = process.env.BOT_TOKEN ? new TelegramBot(process.env.BOT_TOKEN, { polling: false }) : null;
 const CHAT_ID = process.env.CHAT_ID;
-const ffmpegPath = "ffmpeg";
+const ffmpegPath = process.env.FFMPEG_PATH || "ffmpeg";
+const ROOT = __dirname;
+const CONTENT_NOTE = "This video contains original commentary generated with AI-assisted tools and synthetic narration. The topic is presented for general reflection and is not professional advice.";
+const ASSET_MANIFEST_PATH = path.join(ROOT, "asset-licenses.json");
 
 // ===== GOOGLE AUTH =====
 if (process.env.GOOGLE_CREDENTIALS) {
-  fs.writeFileSync("credentials.json", process.env.GOOGLE_CREDENTIALS.replace(/\\n/g, "\n"));
+  fs.writeFileSync(path.join(ROOT, "credentials.json"), process.env.GOOGLE_CREDENTIALS.replace(/\\n/g, "\n"));
 }
 if (process.env.GOOGLE_TOKEN) {
-  fs.writeFileSync("token.json", process.env.GOOGLE_TOKEN.replace(/\\n/g, "\n"));
+  fs.writeFileSync(path.join(ROOT, "token.json"), process.env.GOOGLE_TOKEN.replace(/\\n/g, "\n"));
 }
 
 // ===== NOTIFY =====
 async function notify(msg) {
   try {
-    if (CHAT_ID) await bot.sendMessage(CHAT_ID, msg);
+    if (CHAT_ID && bot) await bot.sendMessage(CHAT_ID, msg);
   } catch (e) {
     console.log("Notify failed:", e.message);
   }
 }
 
 // ===== SETUP =====
-["voice", "output", "images", "music"].forEach(d => {
-  if (!fs.existsSync(d)) fs.mkdirSync(d);
+["voice", "output"].forEach(d => {
+  const dir = path.join(ROOT, d);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 });
+
+function loadAssetManifest() {
+  if (!fs.existsSync(ASSET_MANIFEST_PATH)) {
+    throw new Error("asset-licenses.json is required; do not upload unverified assets");
+  }
+
+  const manifest = JSON.parse(fs.readFileSync(ASSET_MANIFEST_PATH, "utf8"));
+  if (manifest.status !== "verified") {
+    throw new Error("Asset manifest is not verified; refusing to publish");
+  }
+
+  return manifest;
+}
+
+function resolveAsset(relativePath) {
+  const resolved = path.resolve(ROOT, relativePath);
+  if (!resolved.startsWith(ROOT + path.sep)) {
+    throw new Error(`Invalid asset path: ${relativePath}`);
+  }
+  return resolved;
+}
 
 // ===== HELPERS =====
 function pick(arr) {
@@ -38,10 +67,12 @@ function pick(arr) {
 
 // ✅ FIX: Shuffle array randomly
 function shuffle(arr) {
-  return arr
-    .map(item => ({ item, sort: Math.random() }))
-    .sort((a, b) => a.sort - b.sort)
-    .map(({ item }) => item);
+  const copy = [...arr];
+  for (let i = copy.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
 }
 
 // ===== SCRIPT ENGINE =====
@@ -346,42 +377,58 @@ function generateScript() {
   return template(hook);
 }
 
-// ===== TITLE =====
-// ✅ IMPROVED: More hashtag variety
-const hashtagSets = [
-  "#viral #relationship #dating",
-  "#relationships #love #selflove",
-  "#datingadvice #heartbreak #motivation",
-  "#lovequotes #selfworth #mentalhealth",
-  "#relationshipadvice #toxic #healing",
-];
-
+// ===== TITLE & DESCRIPTION =====
 function buildTitle(script) {
-  const hashtags = pick(hashtagSets);
-  return (script.split("\n")[0] + " " + hashtags).substring(0, 90);
+  const hook = script.split("\n")[0].replace(/[.!?]+$/, "").trim();
+  const suffix = " | Relationship Reflection";
+  return `${hook}${suffix}`.substring(0, 100);
+}
+
+function buildDescription(script, manifest) {
+  const topics = ["relationships", "self-worth", "emotional wellbeing"];
+  const assetCredits = manifest.credits || "All visual and audio assets are used under the permissions recorded in asset-licenses.json.";
+  return [
+    "A short, original reflection about relationships and self-worth.",
+    "",
+    script,
+    "",
+    "This is general reflection, not therapy, medical, legal, or professional advice. Please use your own judgment and seek qualified support when needed.",
+    "",
+    CONTENT_NOTE,
+    "",
+    assetCredits,
+    "",
+    `Topics: ${topics.join(", ")}`,
+    "#relationships #selfworth #emotionalwellbeing",
+  ].join("\n");
 }
 
 // ===== IMAGES =====
-// ✅ FIX: Random 4 images from all available images
-function getImages() {
-  const files = fs.readdirSync("images")
+function getImages(manifest) {
+  const files = fs.readdirSync(path.join(ROOT, "images"))
     .filter(f => /\.(jpg|jpeg|png)$/i.test(f));
+  const allowed = new Set(manifest.images || []);
+  const verified = files.filter(f => allowed.has(`images/${f}`));
 
-  if (files.length < 4) throw new Error(`Need at least 4 images, found ${files.length}`);
+  if (verified.length < 4) {
+    throw new Error(`Need at least 4 verified images, found ${verified.length}`);
+  }
 
-  const shuffled = shuffle(files);
-  return shuffled.slice(0, 4).map(f => "images/" + f);
+  return shuffle(verified).slice(0, 4).map(f => resolveAsset(`images/${f}`));
 }
 
 // ===== MUSIC =====
-// ✅ FIX: Random music selection
-function getMusic() {
-  const files = fs.readdirSync("music")
+function getMusic(manifest) {
+  const files = fs.readdirSync(path.join(ROOT, "music"))
     .filter(f => /\.mp3$/i.test(f));
+  const allowed = new Set(manifest.music || []);
+  const verified = files.filter(f => allowed.has(`music/${f}`));
 
-  if (files.length === 0) throw new Error("No music files found in music/ folder");
+  if (verified.length === 0) {
+    throw new Error("No verified music files found in asset-licenses.json");
+  }
 
-  return "music/" + pick(files);
+  return resolveAsset(`music/${pick(verified)}`);
 }
 
 // ===== AUDIO CHECK =====
@@ -404,10 +451,11 @@ function cleanup(voiceFile) {
 
   // Remove output videos older than 1 day
   try {
-    const outputs = fs.readdirSync("output").filter(f => f.endsWith(".mp4"));
+    const outputDir = path.join(ROOT, "output");
+    const outputs = fs.readdirSync(outputDir).filter(f => f.endsWith(".mp4"));
     const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
     outputs.forEach(f => {
-      const fullPath = "output/" + f;
+      const fullPath = path.join(outputDir, f);
       const stat = fs.statSync(fullPath);
       if (stat.mtimeMs < oneDayAgo) {
         fs.unlinkSync(fullPath);
@@ -420,51 +468,48 @@ function cleanup(voiceFile) {
 }
 
 // ===== VIDEO =====
-// ✅ FIX: Filter as joined string (no newline issues on any OS)
-function createVideo(images, audio, music, output) {
-  return new Promise((resolve, reject) => {
-    const inputs = images
-      .map(img => `-loop 1 -t 30 -framerate 24 -i "${img}"`)
-      .join(" ");
+async function createVideo(images, audio, music, output) {
+  const args = ["-y"];
+  for (const image of images) {
+    args.push("-loop", "1", "-t", "30", "-framerate", "24", "-i", image);
+  }
+  args.push("-i", audio, "-i", music);
 
-    const filterParts = [
-      "[0:v]scale=1080:1920,setsar=1,fps=24[v0]",
-      "[1:v]scale=1080:1920,setsar=1,fps=24[v1]",
-      "[2:v]scale=1080:1920,setsar=1,fps=24[v2]",
-      "[3:v]scale=1080:1920,setsar=1,fps=24[v3]",
-      "[v0][v1]xfade=transition=fade:duration=1:offset=29[v01]",
-      "[v01][v2]xfade=transition=fade:duration=1:offset=58[v02]",
-      "[v02][v3]xfade=transition=fade:duration=1:offset=87,format=yuv420p[v]",
-      "[4:a]volume=1[a1]",
-      "[5:a]volume=0.08[a2]",
-      "[a1][a2]amix=inputs=2:duration=first[a]",
-    ].join(";");
+  const filterParts = [
+    "[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1,fps=24[v0]",
+    "[1:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1,fps=24[v1]",
+    "[2:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1,fps=24[v2]",
+    "[3:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1,fps=24[v3]",
+    "[v0][v1]xfade=transition=fade:duration=1:offset=29[v01]",
+    "[v01][v2]xfade=transition=fade:duration=1:offset=58[v02]",
+    "[v02][v3]xfade=transition=fade:duration=1:offset=87,format=yuv420p[v]",
+    "[4:a]volume=1[a1]",
+    "[5:a]volume=0.08[a2]",
+    "[a1][a2]amix=inputs=2:duration=first:dropout_transition=0[a]",
+  ].join(";");
 
-    const cmd = [
-      ffmpegPath,
-      "-y",
-      inputs,
-      `-i "${audio}"`,
-      `-i "${music}"`,
-      `-filter_complex "${filterParts}"`,
-      `-map "[v]"`,
-      `-map "[a]"`,
-      "-shortest",
-      "-preset ultrafast",
-      `"${output}"`,
-    ].join(" ");
+  args.push(
+    "-filter_complex", filterParts,
+    "-map", "[v]",
+    "-map", "[a]",
+    "-shortest",
+    "-c:v", "libx264",
+    "-preset", process.env.FFMPEG_PRESET || "medium",
+    "-crf", "20",
+    "-c:a", "aac",
+    "-b:a", "128k",
+    "-movflags", "+faststart",
+    "-pix_fmt", "yuv420p",
+    output,
+  );
 
-    console.log("Running FFmpeg...");
-
-    exec(cmd, { maxBuffer: 1024 * 1024 * 100 }, (err, stdout, stderr) => {
-      if (err) {
-        console.log("FFMPEG STDERR:\n", stderr);
-        reject(new Error("FFmpeg failed: " + (stderr ? stderr.slice(-300) : err.message)));
-      } else {
-        resolve();
-      }
-    });
-  });
+  console.log("Running FFmpeg...");
+  try {
+    await execFileAsync(ffmpegPath, args, { maxBuffer: 1024 * 1024 * 100 });
+  } catch (error) {
+    const detail = error.stderr || error.message;
+    throw new Error(`FFmpeg failed: ${detail.slice(-500)}`);
+  }
 }
 
 // ===== MAIN =====
@@ -475,12 +520,14 @@ async function run() {
     console.log("===== START RUN =====");
     console.log("Time:", new Date().toISOString());
 
-    // 1. Generate script
+    const manifest = loadAssetManifest();
+
+    // 1. Generate an original script from the channel's reviewed topic set.
     const script = generateScript();
     console.log("Hook:", script.split("\n")[0]);
 
     // 2. Create voice
-    await notify("🎙 Generating voice...");
+    await notify("Generating narration...");
     voiceFile = await createVoice(script);
     console.log("Voice file:", voiceFile);
 
@@ -488,15 +535,15 @@ async function run() {
       throw new Error(`Audio file invalid or too small: ${voiceFile}`);
     }
 
-    // 3. Get images & music
-    const images = getImages();
-    const music = getMusic();
+    // 3. Select only assets recorded as verified in the manifest.
+    const images = getImages(manifest);
+    const music = getMusic(manifest);
     console.log("Images selected:", images);
     console.log("Music selected:", music);
 
     // 4. Create video
     await notify("🎬 Creating video...");
-    const out = `output/video_${Date.now()}.mp4`;
+    const out = path.join(ROOT, "output", `video_${Date.now()}.mp4`);
 
     await createVideo(images, voiceFile, music, out);
 
@@ -510,11 +557,19 @@ async function run() {
     // 5. Upload
     await notify(`☁️ Uploading video (${videoSize} MB)...`);
     const title = buildTitle(script);
+    const description = buildDescription(script, manifest);
     console.log("Title:", title);
 
-    await uploadVideo(out, title, script);
+    const privacyStatus = process.env.UPLOAD_PRIVACY_STATUS || "private";
+    await uploadVideo(out, {
+      title,
+      description,
+      tags: ["relationships", "self-worth", "emotional wellbeing"],
+      privacyStatus,
+      containsSyntheticMedia: true,
+    });
 
-    await notify(`✅ Upload complete!\n📌 Title: ${title}`);
+    await notify(`Upload complete (${privacyStatus}).\nTitle: ${title}`);
     console.log("===== DONE =====");
 
   } catch (e) {
@@ -526,4 +581,19 @@ async function run() {
   }
 }
 
-run();
+if (require.main === module) {
+  run().catch(error => {
+    console.error(error);
+    process.exitCode = 1;
+  });
+}
+
+module.exports = {
+  buildDescription,
+  buildTitle,
+  createVideo,
+  generateScript,
+  getImages,
+  getMusic,
+  loadAssetManifest,
+};
