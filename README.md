@@ -4,7 +4,7 @@ This project generates short-form relationship reflections with synthetic narrat
 
 ## Important publishing policy
 
-The bot now defaults to `private` uploads and refuses public uploads unless `ALLOW_PUBLIC_UPLOAD=true` is explicitly provided. Review the rendered video, title, description, asset rights, and policy suitability before enabling public publishing. A successful upload is not a guarantee of views, YPP acceptance, ad suitability, or revenue.
+The scheduled workflow is configured for one public upload per day after the code-level quality gates pass. The upload step still requires `ALLOW_PUBLIC_UPLOAD=true`, and the workflow sets it explicitly. A successful upload is not a guarantee of views, YPP acceptance, ad suitability, or revenue.
 
 The description states that the commentary and narration use AI-assisted tools. The API request also sets YouTube's `status.containsSyntheticMedia=true`. This is appropriate for the current synthetic narration workflow, but the channel owner remains responsible for selecting the correct disclosure for the actual video in YouTube Studio.
 
@@ -12,7 +12,7 @@ YouTube monetization review expects original and authentic content and may rejec
 
 ## Asset rights gate
 
-The old bundled `images/` and `music/` folders were removed. Every run now queries Openverse and downloads four fresh CC0 candidates into the ignored `.runtime/images/` directory. These files are not committed as a reusable image pool. The current run's source page, download URL, creator field, license URL, and SHA-256 hash are recorded in `.runtime/current-assets.json` and included in the YouTube description.
+The old bundled `images/` and `music/` folders were removed. The renderer now applies format-specific zoom/pan motion, transition families, scene labels, animated subtitles, and audio loudness normalization. Every run now queries Openverse and downloads four fresh CC0 candidates into the ignored `.runtime/images/` directory. These files are not committed as a reusable image pool. The current run's source page, download URL, creator field, license URL, and SHA-256 hash are recorded in `.runtime/current-assets.json` and included in the YouTube description.
 
 Openverse result IDs are stored in `state/image-history.json`, and the GitHub Actions workflow restores/saves that file through the Actions cache. A later run excludes result IDs already used by earlier runs, and selection prefers different creators within a video. If the API is unavailable or it cannot find enough new verified candidates, the run stops; it does not fall back to an old image or an unverified source. Background music is currently disabled, so the video uses narration-only audio.
 
@@ -33,12 +33,16 @@ The OAuth token must be created with `https://www.googleapis.com/auth/youtube.up
 
 ## Runtime settings
 
-The workflow passes conservative defaults. Override these only after review:
+The workflow passes public-upload and enhanced-editing defaults. Override these only after review:
 
 | Variable | Default | Meaning |
 | --- | --- | --- |
-| `UPLOAD_PRIVACY_STATUS` | `private` | Upload visibility: `private`, `unlisted`, or `public` |
-| `ALLOW_PUBLIC_UPLOAD` | `false` | Must be exactly `true` to permit public visibility |
+| `UPLOAD_PRIVACY_STATUS` | `public` in Actions | Upload visibility: `private`, `unlisted`, or `public` |
+| `ALLOW_PUBLIC_UPLOAD` | `true` in Actions | Must be exactly `true` to permit public visibility |
+| `VIDEO_WIDTH` | `1080` | Vertical render width; use `540` for a faster preview |
+| `VIDEO_HEIGHT` | `1920` | Vertical render height; use `960` for a faster preview |
+| `VIDEO_FPS` | `24` | Render frame rate |
+| `SKIP_UPLOAD` | unset | Set to `true` for a local preview without YouTube upload |
 | `TTS_VOICE` | `en-US-JennyNeural` | Edge TTS voice |
 | `DEFAULT_LANGUAGE` | `en` | Video metadata language |
 | `DEFAULT_AUDIO_LANGUAGE` | `en-US` | Spoken audio language |

@@ -3,7 +3,7 @@ name: Generate and review YouTube video
 on:
   workflow_dispatch:
   schedule:
-    # Once daily; review the private upload before publishing.
+    # Once daily; publish one reviewed-by-code educational video per run.
     - cron: "30 0 * * *"
 
 concurrency:
@@ -53,12 +53,12 @@ jobs:
           GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
           GOOGLE_TOKEN: ${{ secrets.GOOGLE_TOKEN }}
           CHAT_ID: ${{ secrets.CHAT_ID }}
-          UPLOAD_PRIVACY_STATUS: private
-          ALLOW_PUBLIC_UPLOAD: "false"
+          UPLOAD_PRIVACY_STATUS: public
+          ALLOW_PUBLIC_UPLOAD: "true"
           TTS_VOICE: en-US-JennyNeural
           DEFAULT_LANGUAGE: en
           DEFAULT_AUDIO_LANGUAGE: en-US
-          WIKIMEDIA_USER_AGENT: yt-auto-bot1/1.0 (licensed image downloader; repository owner contact)
+          OPENVERSE_USER_AGENT: yt-auto-bot1/1.0 (open-license image downloader; repository owner contact)
         run: node index.js
 
       - name: Save image rotation history

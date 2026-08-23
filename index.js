@@ -206,11 +206,13 @@ function okAudio(f) {
 
 // ===== CLEANUP =====
 // ✅ NEW: Clean up old temp files to save space
-function cleanup(voiceFile) {
-  try {
-    if (voiceFile && fs.existsSync(voiceFile)) fs.unlinkSync(voiceFile);
-  } catch (e) {
-    console.log("Cleanup warning:", e.message);
+function cleanup(voiceFile, subtitlesFile) {
+  for (const file of [voiceFile, subtitlesFile]) {
+    try {
+      if (file && fs.existsSync(file)) fs.unlinkSync(file);
+    } catch (e) {
+      console.log("Cleanup warning:", e.message);
+    }
   }
 
   // Remove output videos older than 1 day
@@ -232,33 +234,118 @@ function cleanup(voiceFile) {
 }
 
 // ===== VIDEO =====
-async function createVideo(images, audio, music, output) {
+function getEditingPreset(format) {
+  const presets = {
+    myth_reality: {
+      transitions: ["wipeleft", "slideright", "fade"],
+      zooms: ["in", "out", "in", "hold"],
+      labels: ["THE ASSUMPTION", "LOOK CLOSER", "TRY THIS", "REFLECT"],
+    },
+    mini_case: {
+      transitions: ["dissolve", "circleopen", "fadeblack"],
+      zooms: ["out", "in", "hold", "out"],
+      labels: ["THE MOMENT", "THE PATTERN", "THE SKILL", "THE TEST"],
+    },
+    conversation_script: {
+      transitions: ["slideright", "wipeleft", "fade"],
+      zooms: ["hold", "in", "out", "in"],
+      labels: ["NOTICE", "SAY THIS", "WHY IT HELPS", "CHECK IN"],
+    },
+    practical_checklist: {
+      transitions: ["fadeblack", "wipeleft", "slideright"],
+      zooms: ["in", "hold", "out", "in"],
+      labels: ["STEP 1", "STEP 2", "STEP 3", "REVIEW"],
+    },
+    reflective_letter: {
+      transitions: ["fade", "dissolve", "circleclose"],
+      zooms: ["out", "hold", "in", "out"],
+      labels: ["PAUSE", "REMEMBER", "LEARN", "ONE NEXT STEP"],
+    },
+    three_part_lesson: {
+      transitions: ["wipeleft", "dissolve", "slideright"],
+      zooms: ["in", "out", "hold", "in"],
+      labels: ["PART 1", "PART 2", "PART 3", "PRACTICE"],
+    },
+    journal_prompt: {
+      transitions: ["circleopen", "fadeblack", "wipeleft"],
+      zooms: ["hold", "out", "in", "hold"],
+      labels: ["NOTICE", "NAME IT", "WRITE", "TAKE IT WITH YOU"],
+    },
+  };
+  return presets[format] || presets.myth_reality;
+}
+
+function escapeDrawText(text) {
+  return String(text).replace(/([\\':])/g, "\\$1");
+}
+
+function escapeSubtitlePath(file) {
+  return String(file).replace(/([\\:'])/g, "\\$1");
+}
+
+function zoomExpression(mode) {
+  if (mode === "out") return "if(eq(on,0),1.12,max(zoom-0.0008,1.0))";
+  if (mode === "hold") return "1.045";
+  return "min(zoom+0.0008,1.12)";
+}
+
+async function createVideo(images, audio, music, output, subtitlesPath, brief) {
+  if (!Array.isArray(images) || images.length !== 4) throw new Error("Exactly four images are required");
+  const width = Number(process.env.VIDEO_WIDTH || 1080);
+  const height = Number(process.env.VIDEO_HEIGHT || 1920);
+  const fps = Number(process.env.VIDEO_FPS || 24);
+  if (!Number.isInteger(width) || !Number.isInteger(height) || width < 360 || height < 640) {
+    throw new Error("VIDEO_WIDTH/VIDEO_HEIGHT must be valid vertical dimensions");
+  }
+  const sourceWidth = Math.ceil(width * 4 / 3);
+  const sourceHeight = Math.ceil(height * 4 / 3);
+  const preset = getEditingPreset(brief?.format);
   const args = ["-y"];
   for (const image of images) {
-    args.push("-loop", "1", "-t", "30", "-framerate", "24", "-i", image);
+    // Feed one source frame; zoompan expands it into 30 seconds of motion.
+    args.push("-loop", "1", "-t", "1", "-framerate", "1", "-i", image);
   }
   args.push("-i", audio);
   if (music) args.push("-i", music);
 
-  const filterParts = [
-    "[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1,fps=24[v0]",
-    "[1:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1,fps=24[v1]",
-    "[2:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1,fps=24[v2]",
-    "[3:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1,fps=24[v3]",
-    "[v0][v1]xfade=transition=fade:duration=1:offset=29[v01]",
-    "[v01][v2]xfade=transition=fade:duration=1:offset=58[v02]",
-    "[v02][v3]xfade=transition=fade:duration=1:offset=87,format=yuv420p[v]",
+  const filterParts = images.map((_, index) => {
+    const label = escapeDrawText(preset.labels[index] || `SCENE ${index + 1}`);
+    const fontSize = Math.max(28, Math.round(width / 25));
+    const margin = Math.max(36, Math.round(width / 15));
+    return `[${index}:v]scale=${sourceWidth}:${sourceHeight}:force_original_aspect_ratio=increase,crop=${sourceWidth}:${sourceHeight},zoompan=z='${zoomExpression(preset.zooms[index])}':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=720:s=${width}x${height}:fps=${fps},setsar=1,drawbox=x=0:y=0:w=iw:h=ih:color=black@0.10:t=fill,drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='${label}':fontcolor=white:fontsize=${fontSize}:borderw=3:bordercolor=black@0.75:x=${margin}:y=${margin}:enable='between(t,0,4)'[v${index}]`;
+  });
+
+  let currentVideo = "v0";
+  for (let index = 1; index < images.length; index += 1) {
+    const previous = currentVideo;
+    const outputLabel = `x${index}`;
+    const transition = preset.transitions[index - 1];
+    const offset = 29 * index;
+    filterParts.push(`[${previous}][v${index}]xfade=transition=${transition}:duration=1:offset=${offset}[${outputLabel}]`);
+    currentVideo = outputLabel;
+  }
+
+  if (subtitlesPath && fs.existsSync(subtitlesPath)) {
+    const subtitleFile = escapeSubtitlePath(subtitlesPath);
+    const subtitleSize = Math.max(14, Math.round(width / 60));
+    const subtitleMargin = Math.max(80, Math.round(height / 10));
+    filterParts.push(`[${currentVideo}]subtitles='${subtitleFile}':force_style='FontName=DejaVu Sans,FontSize=${subtitleSize},PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,BorderStyle=1,Outline=2,Shadow=0,Alignment=2,MarginV=${subtitleMargin}'[v]`);
+  } else {
+    filterParts.push(`[${currentVideo}]format=yuv420p[v]`);
+  }
+
+  const audioIndex = images.length;
+  filterParts.push(
     music
-      ? "[4:a]volume=1[a1]"
-      : "[4:a]anull[a]",
-    ...(music ? [
-      "[5:a]volume=0.08[a2]",
-      "[a1][a2]amix=inputs=2:duration=first:dropout_transition=0[a]",
-    ] : []),
-  ].join(";");
+      ? `[${audioIndex}:a]loudnorm=I=-16:TP=-1.5:LRA=11,acompressor=threshold=-18dB:ratio=2:attack=20:release=250[a1]`
+      : `[${audioIndex}:a]loudnorm=I=-16:TP=-1.5:LRA=11,acompressor=threshold=-18dB:ratio=2:attack=20:release=250[a]`,
+  );
+  if (music) {
+    filterParts.push(`[${audioIndex + 1}:a]volume=0.06[a2]`, "[a1][a2]amix=inputs=2:duration=first:dropout_transition=0[a]");
+  }
 
   args.push(
-    "-filter_complex", filterParts,
+    "-filter_complex", filterParts.join(";"),
     "-map", "[v]",
     "-map", "[a]",
     "-shortest",
@@ -272,7 +359,7 @@ async function createVideo(images, audio, music, output) {
     output,
   );
 
-  console.log("Running FFmpeg...");
+  console.log(`Running FFmpeg with ${brief?.format || "default"} edit preset...`);
   try {
     await execFileAsync(ffmpegPath, args, { maxBuffer: 1024 * 1024 * 100 });
   } catch (error) {
@@ -284,6 +371,7 @@ async function createVideo(images, audio, music, output) {
 // ===== MAIN =====
 async function run() {
   let voiceFile = null;
+  let subtitlesFile = null;
 
   try {
     console.log("===== START RUN =====");
@@ -297,8 +385,11 @@ async function run() {
 
     // 2. Create voice
     await notify("Generating narration...");
-    voiceFile = await createVoice(script);
+    const voice = await createVoice(script);
+    voiceFile = voice.audioPath;
+    subtitlesFile = voice.subtitlesPath;
     console.log("Voice file:", voiceFile);
+    console.log("Subtitle file:", subtitlesFile);
 
     if (!okAudio(voiceFile)) {
       throw new Error(`Audio file invalid or too small: ${voiceFile}`);
@@ -315,7 +406,7 @@ async function run() {
     await notify("🎬 Creating video...");
     const out = path.join(ROOT, "output", `video_${Date.now()}.mp4`);
 
-    await createVideo(images, voiceFile, music, out);
+    await createVideo(images, voiceFile, music, out, subtitlesFile, brief);
 
     if (!fs.existsSync(out)) {
       throw new Error("Video file was not created");
@@ -351,7 +442,7 @@ async function run() {
     await notify("❌ ERROR: " + e.message);
   } finally {
     // ✅ Always cleanup temp files
-    cleanup(voiceFile);
+    cleanup(voiceFile, subtitlesFile);
   }
 }
 
