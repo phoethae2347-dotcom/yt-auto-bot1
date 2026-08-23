@@ -2,6 +2,7 @@ require("dotenv").config();
 
 const fs = require("fs");
 const path = require("path");
+const crypto = require("crypto");
 const { execFile } = require("child_process");
 const { promisify } = require("util");
 const execFileAsync = promisify(execFile);
@@ -48,6 +49,23 @@ function loadAssetManifest() {
   const manifest = JSON.parse(fs.readFileSync(ASSET_MANIFEST_PATH, "utf8"));
   if (manifest.status !== "verified") {
     throw new Error("Asset manifest is not verified; refusing to publish");
+  }
+
+  if (!Array.isArray(manifest.assetRecords) || manifest.assetRecords.length < 4) {
+    throw new Error("Asset manifest must include at least four asset records");
+  }
+
+  const recordsByPath = new Map(manifest.assetRecords.map(record => [record.path, record]));
+  for (const assetPath of [...(manifest.images || []), ...(manifest.music || [])]) {
+    const record = recordsByPath.get(assetPath);
+    if (!record) throw new Error(`Missing license record for ${assetPath}`);
+    if (record.license !== "CC0 1.0 Universal Public Domain Dedication") {
+      throw new Error(`Unsupported asset license for ${assetPath}`);
+    }
+    const fullPath = resolveAsset(assetPath);
+    if (!fs.existsSync(fullPath)) throw new Error(`Licensed asset is missing: ${assetPath}`);
+    const actualHash = crypto.createHash("sha256").update(fs.readFileSync(fullPath)).digest("hex");
+    if (actualHash !== record.sha256) throw new Error(`Asset integrity check failed: ${assetPath}`);
   }
 
   return manifest;
@@ -195,30 +213,27 @@ function buildDescription(script, manifest, brief) {
 
 // ===== IMAGES =====
 function getImages(manifest) {
-  const files = fs.readdirSync(path.join(ROOT, "images"))
-    .filter(f => /\.(jpg|jpeg|png)$/i.test(f));
-  const allowed = new Set(manifest.images || []);
-  const verified = files.filter(f => allowed.has(`images/${f}`));
+  const verified = (manifest.images || [])
+    .filter(file => /\.(jpg|jpeg|png)$/i.test(file))
+    .map(resolveAsset)
+    .filter(file => fs.existsSync(file));
 
   if (verified.length < 4) {
     throw new Error(`Need at least 4 verified images, found ${verified.length}`);
   }
 
-  return shuffle(verified).slice(0, 4).map(f => resolveAsset(`images/${f}`));
+  return shuffle(verified).slice(0, 4);
 }
 
 // ===== MUSIC =====
 function getMusic(manifest) {
-  const files = fs.readdirSync(path.join(ROOT, "music"))
-    .filter(f => /\.mp3$/i.test(f));
-  const allowed = new Set(manifest.music || []);
-  const verified = files.filter(f => allowed.has(`music/${f}`));
+  const verified = (manifest.music || [])
+    .filter(file => /\.mp3$/i.test(file))
+    .map(resolveAsset)
+    .filter(file => fs.existsSync(file));
 
-  if (verified.length === 0) {
-    throw new Error("No verified music files found in asset-licenses.json");
-  }
-
-  return resolveAsset(`music/${pick(verified)}`);
+  // Music is optional: never use an unverified bundled track.
+  return verified.length > 0 ? resolveAsset(`music/${pick(verified)}`) : null;
 }
 
 // ===== AUDIO CHECK =====
@@ -263,7 +278,8 @@ async function createVideo(images, audio, music, output) {
   for (const image of images) {
     args.push("-loop", "1", "-t", "30", "-framerate", "24", "-i", image);
   }
-  args.push("-i", audio, "-i", music);
+  args.push("-i", audio);
+  if (music) args.push("-i", music);
 
   const filterParts = [
     "[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1,fps=24[v0]",
@@ -273,9 +289,13 @@ async function createVideo(images, audio, music, output) {
     "[v0][v1]xfade=transition=fade:duration=1:offset=29[v01]",
     "[v01][v2]xfade=transition=fade:duration=1:offset=58[v02]",
     "[v02][v3]xfade=transition=fade:duration=1:offset=87,format=yuv420p[v]",
-    "[4:a]volume=1[a1]",
-    "[5:a]volume=0.08[a2]",
-    "[a1][a2]amix=inputs=2:duration=first:dropout_transition=0[a]",
+    music
+      ? "[4:a]volume=1[a1]"
+      : "[4:a]anull[a]",
+    ...(music ? [
+      "[5:a]volume=0.08[a2]",
+      "[a1][a2]amix=inputs=2:duration=first:dropout_transition=0[a]",
+    ] : []),
   ].join(";");
 
   args.push(
@@ -331,7 +351,7 @@ async function run() {
     const images = getImages(manifest);
     const music = getMusic(manifest);
     console.log("Images selected:", images);
-    console.log("Music selected:", music);
+    console.log("Music selected:", music || "none (narration-only mix)");
 
     // 4. Create video
     await notify("🎬 Creating video...");

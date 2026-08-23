@@ -57,10 +57,14 @@ test("asset selection only returns files recorded in the manifest", () => {
   const images = getImages(manifest);
   const music = getMusic(manifest);
   assert.equal(images.length, 4);
-  assert.ok(images.every(file => file.startsWith(path.join(__dirname, "..", "images"))));
-  assert.ok(music.startsWith(path.join(__dirname, "..", "music")));
+  assert.ok(images.every(file => file.startsWith(path.join(__dirname, "..", "licensed-images"))));
+  assert.equal(music, null);
 });
 
-test("unverified manifest blocks publishing", () => {
-  assert.throws(() => loadAssetManifest(), /not verified/);
+test("verified manifest validates licensed assets and hashes", () => {
+  const loaded = loadAssetManifest();
+  assert.equal(loaded.status, "verified");
+  assert.equal(loaded.images.length, 8);
+  assert.ok(loaded.assetRecords.every(record => record.license.includes("CC0")));
+  assert.ok(loaded.assetRecords.every(record => /^[a-f0-9]{64}$/.test(record.sha256)));
 });

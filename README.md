@@ -12,9 +12,11 @@ YouTube monetization review expects original and authentic content and may rejec
 
 ## Asset rights gate
 
-Every image and music file must be documented in `asset-licenses.json`. The runtime refuses to render when the manifest is not marked `verified`. The committed manifest intentionally has `status: "needs_review"` because the repository does not contain reliable source URLs, licenses, creator permissions, or download records for the bundled assets.
+The old bundled `images/` and `music/` folders were removed. The bot now uses only the eight files in `licensed-images/`, which are CC0 1.0 records retrieved from Wikimedia Commons and listed individually in `asset-licenses.json`. Each record includes the source page, download URL, creator field, license URL, and SHA-256 hash.
 
-Before a real run, replace the placeholder ownership and credits with the actual source and license information for every asset, then change `status` to `verified` only after checking that commercial YouTube use, editing, redistribution, and attribution are allowed. Do not treat an asset as copyright-free merely because it is found online or appears to be AI-generated.
+The runtime refuses to render any file that is not listed in the verified manifest. Music is optional; when no verified music exists, the video uses narration-only audio instead of silently selecting an unverified track. CC0 addresses copyright licensing, but the channel owner should still check the source page and avoid images containing identifiable people, private scenes, trademarks, or other non-copyright restrictions.
+
+Do not treat an asset as risk-free merely because it is found online or appears to be AI-generated. Re-check source pages and licenses periodically before relying on a video for commercial publishing.
 
 ## Required secrets
 
@@ -44,7 +46,7 @@ The workflow passes conservative defaults. Override these only after review:
 
 ## Local checks
 
-Install dependencies with `npm ci`, install FFmpeg and `edge-tts`, and run `npm test`. A real run requires valid Google credentials, a verified asset manifest, and the relevant runtime settings. Keep generated `credentials.json`, `token.json`, `voice/`, and `output/` files out of version control.
+Install dependencies with `npm ci`, install FFmpeg and `edge-tts`, and run `npm test`. A real run requires valid Google credentials, the verified asset manifest, and the relevant runtime settings. Keep generated `credentials.json`, `token.json`, `voice/`, and `output/` files out of version control.
 
 ## Content quality guidance
 

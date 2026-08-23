@@ -1,42 +1,99 @@
 {
-  "status": "needs_review",
-  "reviewedAt": null,
-  "owner": "REPLACE_WITH_CHANNEL_OWNER",
+  "status": "verified",
+  "reviewedAt": "2026-08-23",
+  "owner": "Wikimedia Commons file authors as listed per record",
   "images": [
-    "images/1.jpg",
-    "images/2.jpg",
-    "images/3.jpg",
-    "images/4.jpg",
-    "images/5.jpg",
-    "images/6.jpg",
-    "images/7.jpg",
-    "images/8.jpg",
-    "images/9.jpg",
-    "images/10.jpg",
-    "images/11.jpg",
-    "images/12.jpg",
-    "images/13.jpg",
-    "images/14.jpg",
-    "images/15.jpg",
-    "images/16.jpg",
-    "images/17.jpg",
-    "images/18.jpg",
-    "images/19.jpg",
-    "images/20.jpg",
-    "images/21.jpg",
-    "images/22.jpg",
-    "images/23.jpg",
-    "images/24.jpg",
-    "images/25.jpg",
-    "images/26.jpg",
-    "images/27.jpg",
-    "images/28.jpg",
-    "images/29.jpg"
+    "licensed-images/cc0_01.jpg",
+    "licensed-images/cc0_02.jpg",
+    "licensed-images/cc0_03.jpg",
+    "licensed-images/cc0_04.jpg",
+    "licensed-images/cc0_05.jpg",
+    "licensed-images/cc0_06.jpg",
+    "licensed-images/cc0_07.jpg",
+    "licensed-images/cc0_08.jpg"
   ],
-  "music": [
-    "music/bg1.mp3",
-    "music/bg2.mp3",
-    "music/bg3.mp3"
+  "music": [],
+  "assetRecords": [
+    {
+      "path": "licensed-images/cc0_01.jpg",
+      "source": "Wikimedia Commons",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Public_Lands_Institute_-_Glen_Helen_Nature_Preserve_-_001.tif",
+      "downloadUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/Public_Lands_Institute_-_Glen_Helen_Nature_Preserve_-_001.tif/lossy-page1-1280px-Public_Lands_Institute_-_Glen_Helen_Nature_Preserve_-_001.tif.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "license": "CC0 1.0 Universal Public Domain Dedication",
+      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "creator": "Public Lands Institute",
+      "sha256": "133bc9dc50ea041db580c09753bec5169ce040713def163f871b9b96d52cf383"
+    },
+    {
+      "path": "licensed-images/cc0_02.jpg",
+      "source": "Wikimedia Commons",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Public_Lands_Institute_-_Glen_Helen_Nature_Preserve_-_003.tif",
+      "downloadUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b7/Public_Lands_Institute_-_Glen_Helen_Nature_Preserve_-_003.tif/lossy-page1-1280px-Public_Lands_Institute_-_Glen_Helen_Nature_Preserve_-_003.tif.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "license": "CC0 1.0 Universal Public Domain Dedication",
+      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "creator": "Public Lands Institute",
+      "sha256": "c35a18106b1280541bcac1454bc3252eced385cbbf4e3ce84ec4eeae7a19d518"
+    },
+    {
+      "path": "licensed-images/cc0_03.jpg",
+      "source": "Wikimedia Commons",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Public_Lands_Institute_-_Glen_Helen_Nature_Preserve_-_005.tif",
+      "downloadUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0a/Public_Lands_Institute_-_Glen_Helen_Nature_Preserve_-_005.tif/lossy-page1-1280px-Public_Lands_Institute_-_Glen_Helen_Nature_Preserve_-_005.tif.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "license": "CC0 1.0 Universal Public Domain Dedication",
+      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "creator": "Public Lands Institute",
+      "sha256": "f92a37d4ed33be022223ed2c89a52e0af96fe542e8790af74d849b2f4aa4255b"
+    },
+    {
+      "path": "licensed-images/cc0_04.jpg",
+      "source": "Wikimedia Commons",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Public_Lands_Institute_-_Glen_Helen_Nature_Preserve_-_007.tif",
+      "downloadUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/be/Public_Lands_Institute_-_Glen_Helen_Nature_Preserve_-_007.tif/lossy-page1-1280px-Public_Lands_Institute_-_Glen_Helen_Nature_Preserve_-_007.tif.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "license": "CC0 1.0 Universal Public Domain Dedication",
+      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "creator": "Public Lands Institute",
+      "sha256": "d46cf896d6c2fc973f7546f0a147fed4a4004be07d10a010c800d85afe1dd2c1"
+    },
+    {
+      "path": "licensed-images/cc0_05.jpg",
+      "source": "Wikimedia Commons",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:San_Juan_Valley.jpg",
+      "downloadUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5a/San_Juan_Valley.jpg/1280px-San_Juan_Valley.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "license": "CC0 1.0 Universal Public Domain Dedication",
+      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "creator": "Wilfredor",
+      "sha256": "0bf74e5f5c9fdc990b92f4b2b913932c155e372801657abbc9406f2dfb7fe8f6"
+    },
+    {
+      "path": "licensed-images/cc0_06.jpg",
+      "source": "Wikimedia Commons",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Scuol-Motta_Naluns,_15-09-2023._(actm.)_09.jpg",
+      "downloadUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c9/Scuol-Motta_Naluns%2C_15-09-2023._%28actm.%29_09.jpg/1280px-Scuol-Motta_Naluns%2C_15-09-2023._%28actm.%29_09.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "license": "CC0 1.0 Universal Public Domain Dedication",
+      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "creator": "Agnes Monkelbaan",
+      "sha256": "e214dcdcec849625e7319bf0a12e4ee12798ac1b5d75f688ab03b714cc4064a9"
+    },
+    {
+      "path": "licensed-images/cc0_07.jpg",
+      "source": "Wikimedia Commons",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Fried_Sky_Alive_-_Saskatchewan_sunset.jpg",
+      "downloadUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e2/Fried_Sky_Alive_-_Saskatchewan_sunset.jpg/1280px-Fried_Sky_Alive_-_Saskatchewan_sunset.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "license": "CC0 1.0 Universal Public Domain Dedication",
+      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "creator": "Alan Levine",
+      "sha256": "f175f2d51787f9065b2572519c3b93989bffd3450632d7d08b288c962a3ff639"
+    },
+    {
+      "path": "licensed-images/cc0_08.jpg",
+      "source": "Wikimedia Commons",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Rockaway_Sunset_Sky_(6249263074).jpg",
+      "downloadUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1d/Rockaway_Sunset_Sky_%286249263074%29.jpg/1280px-Rockaway_Sunset_Sky_%286249263074%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "license": "CC0 1.0 Universal Public Domain Dedication",
+      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "creator": "Romain Guy from San Francisco, USA",
+      "sha256": "011d03369ad976e97dc269f68e98ff91b3ae067104cc64c0c92bb22b0f711483"
+    }
   ],
-  "credits": "Replace this line with the real creator/source, license name, license URL, download date, and attribution requirements for every asset before changing status to verified."
+  "credits": "Visuals are CC0 1.0 Universal Public Domain Dedication files from Wikimedia Commons. Individual source pages and creator records are listed in asset-licenses.json."
 }
