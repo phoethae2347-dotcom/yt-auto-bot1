@@ -13,6 +13,10 @@ const {
   loadImageSourcePolicy,
   selectFreshCandidates,
 } = require("../image-source");
+const {
+  normalizeSubtitles,
+  parseSrtTime,
+} = require("../createVoice");
 
 const assets = {
   credits: "Fresh CC0 visual credits are recorded in .runtime/current-assets.json.",
@@ -96,4 +100,25 @@ test("rotation excludes previously used image IDs and prefers fresh creators", (
   assert.equal(selected.length, 4);
   assert.ok(selected.every(candidate => candidate.id !== "1"));
   assert.equal(new Set(selected.map(candidate => candidate.creator)).size, 4);
+});
+
+test("subtitle normalizer creates short timed cues", () => {
+  const input = "/tmp/test-subtitles-in.srt";
+  const output = "/tmp/test-subtitles-out.srt";
+  const newline = String.fromCharCode(10);
+  const fs = require("node:fs");
+  fs.writeFileSync(input, [
+    "1",
+    "00:00:00,000 --> 00:00:05,000",
+    "This is a long caption that should be split into smaller readable chunks.",
+    "",
+  ].join(newline));
+  normalizeSubtitles(input, output, 7);
+  const blocks = fs.readFileSync(output, "utf8").trim().split(new RegExp(newline + "[ ]*" + newline));
+  assert.ok(blocks.length >= 2);
+  for (const block of blocks) {
+    const lines = block.split(newline);
+    assert.ok(lines.slice(2).join(" ").split(/[ ]+/).length <= 7);
+  }
+  assert.equal(parseSrtTime(blocks[0].split(newline)[1].split(" --> ")[0]), 0);
 });

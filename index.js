@@ -13,6 +13,7 @@ const { downloadFreshImages } = require("./image-source");
 const bot = process.env.BOT_TOKEN ? new TelegramBot(process.env.BOT_TOKEN, { polling: false }) : null;
 const CHAT_ID = process.env.CHAT_ID;
 const ffmpegPath = process.env.FFMPEG_PATH || "ffmpeg";
+const ffprobePath = process.env.FFPROBE_PATH || "ffprobe";
 const ROOT = __dirname;
 const CONTENT_NOTE = "This video contains original commentary generated with AI-assisted tools and synthetic narration. The topic is presented for general reflection and is not professional advice.";
 const CONTENT_BRIEFS_PATH = path.join(ROOT, "content-briefs.json");
@@ -234,7 +235,7 @@ function cleanup(voiceFile, subtitlesFile) {
 }
 
 // ===== VIDEO =====
-function getEditingPreset(format) {
+function getEditingPreset(format, seed = Date.now()) {
   const presets = {
     myth_reality: {
       transitions: ["wipeleft", "slideright", "fade"],
@@ -272,7 +273,16 @@ function getEditingPreset(format) {
       labels: ["NOTICE", "NAME IT", "WRITE", "TAKE IT WITH YOU"],
     },
   };
-  return presets[format] || presets.myth_reality;
+  const base = presets[format] || presets.myth_reality;
+  const seedText = String(seed);
+  const variant = [...seedText].reduce((total, character) => total + character.charCodeAt(0), 0) % 3;
+  const rotate = (items, amount) => items.map((_, index) => items[(index + amount) % items.length]);
+  return {
+    ...base,
+    variant,
+    transitions: rotate(base.transitions, variant),
+    zooms: rotate(base.zooms, (variant + 1) % base.zooms.length),
+  };
 }
 
 function escapeDrawText(text) {
@@ -289,6 +299,18 @@ function zoomExpression(mode) {
   return "min(zoom+0.0008,1.12)";
 }
 
+async function getMediaDuration(file) {
+  const { stdout } = await execFileAsync(ffprobePath, [
+    "-v", "error",
+    "-show_entries", "format=duration",
+    "-of", "default=noprint_wrappers=1:nokey=1",
+    file,
+  ]);
+  const duration = Number.parseFloat(stdout.trim());
+  if (!Number.isFinite(duration) || duration <= 0) throw new Error(`Invalid media duration: ${file}`);
+  return duration;
+}
+
 async function createVideo(images, audio, music, output, subtitlesPath, brief) {
   if (!Array.isArray(images) || images.length !== 4) throw new Error("Exactly four images are required");
   const width = Number(process.env.VIDEO_WIDTH || 1080);
@@ -299,10 +321,14 @@ async function createVideo(images, audio, music, output, subtitlesPath, brief) {
   }
   const sourceWidth = Math.ceil(width * 4 / 3);
   const sourceHeight = Math.ceil(height * 4 / 3);
-  const preset = getEditingPreset(brief?.format);
+  const audioDuration = await getMediaDuration(audio);
+  const transitionDuration = 1;
+  const segmentSeconds = (audioDuration + transitionDuration * (images.length - 1)) / images.length;
+  const framesPerSegment = Math.max(1, Math.round(segmentSeconds * fps));
+  const preset = getEditingPreset(brief?.format, `${brief?.id || "video"}:${Date.now()}`);
   const args = ["-y"];
   for (const image of images) {
-    // Feed one source frame; zoompan expands it into 30 seconds of motion.
+    // Feed one source frame; zoompan expands it to the calculated scene duration.
     args.push("-loop", "1", "-t", "1", "-framerate", "1", "-i", image);
   }
   args.push("-i", audio);
@@ -312,7 +338,7 @@ async function createVideo(images, audio, music, output, subtitlesPath, brief) {
     const label = escapeDrawText(preset.labels[index] || `SCENE ${index + 1}`);
     const fontSize = Math.max(28, Math.round(width / 25));
     const margin = Math.max(36, Math.round(width / 15));
-    return `[${index}:v]scale=${sourceWidth}:${sourceHeight}:force_original_aspect_ratio=increase,crop=${sourceWidth}:${sourceHeight},zoompan=z='${zoomExpression(preset.zooms[index])}':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=720:s=${width}x${height}:fps=${fps},setsar=1,drawbox=x=0:y=0:w=iw:h=ih:color=black@0.10:t=fill,drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='${label}':fontcolor=white:fontsize=${fontSize}:borderw=3:bordercolor=black@0.75:x=${margin}:y=${margin}:enable='between(t,0,4)'[v${index}]`;
+    return `[${index}:v]scale=${sourceWidth}:${sourceHeight}:force_original_aspect_ratio=increase,crop=${sourceWidth}:${sourceHeight},zoompan=z='${zoomExpression(preset.zooms[index])}':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=${framesPerSegment}:s=${width}x${height}:fps=${fps},setsar=1,drawbox=x=0:y=0:w=iw:h=ih:color=black@0.10:t=fill,drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='${label}':fontcolor=white:fontsize=${fontSize}:borderw=3:bordercolor=black@0.75:x=${margin}:y=${margin}:enable='between(t,0,4)'[v${index}]`;
   });
 
   let currentVideo = "v0";
@@ -320,8 +346,8 @@ async function createVideo(images, audio, music, output, subtitlesPath, brief) {
     const previous = currentVideo;
     const outputLabel = `x${index}`;
     const transition = preset.transitions[index - 1];
-    const offset = 29 * index;
-    filterParts.push(`[${previous}][v${index}]xfade=transition=${transition}:duration=1:offset=${offset}[${outputLabel}]`);
+    const offset = Number(((segmentSeconds - transitionDuration) * index).toFixed(3));
+    filterParts.push(`[${previous}][v${index}]xfade=transition=${transition}:duration=${transitionDuration}:offset=${offset}[${outputLabel}]`);
     currentVideo = outputLabel;
   }
 
@@ -349,6 +375,7 @@ async function createVideo(images, audio, music, output, subtitlesPath, brief) {
     "-map", "[v]",
     "-map", "[a]",
     "-shortest",
+    "-t", audioDuration.toFixed(3),
     "-c:v", "libx264",
     "-preset", process.env.FFMPEG_PRESET || "medium",
     "-crf", "20",
@@ -359,7 +386,7 @@ async function createVideo(images, audio, music, output, subtitlesPath, brief) {
     output,
   );
 
-  console.log(`Running FFmpeg with ${brief?.format || "default"} edit preset...`);
+  console.log(`Running FFmpeg with ${brief?.format || "default"} edit preset variant ${preset.variant}...`);
   try {
     await execFileAsync(ffmpegPath, args, { maxBuffer: 1024 * 1024 * 100 });
   } catch (error) {
@@ -413,7 +440,13 @@ async function run() {
     }
 
     const videoSize = (fs.statSync(out).size / (1024 * 1024)).toFixed(2);
-    console.log(`Video created: ${out} (${videoSize} MB)`);
+    const sourceAudioDuration = await getMediaDuration(voiceFile);
+    const renderedVideoDuration = await getMediaDuration(out);
+    const durationDelta = Math.abs(renderedVideoDuration - sourceAudioDuration);
+    console.log(`Video created: ${out} (${videoSize} MB, ${renderedVideoDuration.toFixed(3)}s)`);
+    if (durationDelta > 1.5) {
+      throw new Error(`Video duration mismatch: audio=${sourceAudioDuration.toFixed(3)}s video=${renderedVideoDuration.toFixed(3)}s`);
+    }
 
     // 5. Upload
     await notify(`☁️ Uploading video (${videoSize} MB)...`);
