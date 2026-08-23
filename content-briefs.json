@@ -1,0 +1,87 @@
+{
+  "version": 1,
+  "channelTheme": "Relationship communication and self-worth",
+  "editorialRule": "Use each brief as a starting point, then review the final narration before publishing.",
+  "briefs": [
+    {
+      "id": "late-reply-vs-pattern",
+      "format": "myth_reality",
+      "topic": "communication",
+      "opening": "A late reply is not a verdict on your worth.",
+      "scene": "One quiet evening can turn into an hour of checking your phone, rereading a message, and inventing an explanation that the other person never gave.",
+      "insight": "The useful question is not whether one reply was late. It is whether the relationship repeatedly leaves you guessing, refuses clear conversation, and expects you to carry all the emotional work.",
+      "action": "Notice the pattern for a week. Then ask one direct, calm question instead of building a case in your head.",
+      "question": "Are you reacting to one moment, or finally noticing a pattern?"
+    },
+    {
+      "id": "the-apology-test",
+      "format": "mini_case",
+      "topic": "accountability",
+      "opening": "An apology sounds convincing until you watch what happens next.",
+      "scene": "Someone says, 'I am sorry you felt hurt,' the tension disappears for a day, and then the same behavior returns as if the conversation never happened.",
+      "insight": "A meaningful apology does not require perfection. It usually includes a clear description of what happened, responsibility without excuses, and a visible attempt to change the pattern.",
+      "action": "Listen less for dramatic words and more for consistent behavior over time.",
+      "question": "Did the apology repair the relationship, or only end the uncomfortable conversation?"
+    },
+    {
+      "id": "boundary-without-punishment",
+      "format": "conversation_script",
+      "topic": "boundaries",
+      "opening": "A boundary is not a punishment disguised as silence.",
+      "scene": "You keep saying yes to late plans, last-minute cancellations, and conversations that become disrespectful because you are afraid that one firm sentence will make someone leave.",
+      "insight": "A boundary describes what you will do, not how you will control another person. It can be simple: 'I am happy to talk when we can speak respectfully. I will pause this conversation for now.'",
+      "action": "Choose one recurring situation and write the sentence you can calmly repeat without explaining it ten different ways.",
+      "question": "What would protecting your peace sound like if it did not need to sound angry?"
+    },
+    {
+      "id": "chemistry-and-consistency",
+      "format": "myth_reality",
+      "topic": "dating expectations",
+      "opening": "Strong chemistry can be real and still tell you very little about long-term safety.",
+      "scene": "The first few conversations are effortless. You share personal stories quickly, imagine the future, and mistake emotional intensity for evidence that the relationship is already dependable.",
+      "insight": "Chemistry describes how a connection feels in a moment. Consistency shows how a person handles ordinary days, disappointment, limits, and responsibility.",
+      "action": "Let time provide information. Notice whether words, plans, and care remain aligned after the excitement becomes familiar.",
+      "question": "Are you attracted to who this person is, or to the future you are filling in for them?"
+    },
+    {
+      "id": "the-one-sided-calendar",
+      "format": "practical_checklist",
+      "topic": "reciprocity",
+      "opening": "You can learn a lot about reciprocity by looking at the calendar, not just the conversation.",
+      "scene": "You initiate every call, travel every time, remember every important date, and keep calling the relationship balanced because the conversations themselves still feel warm.",
+      "insight": "Warmth matters, but effort matters too. A relationship becomes exhausting when one person is always the planner, the repairer, and the person keeping the connection alive.",
+      "action": "For the next two weeks, stop over-functioning. Keep communicating honestly, but leave room for the other person to initiate and follow through.",
+      "question": "If you stopped carrying the connection, what part of it would continue on its own?"
+    },
+    {
+      "id": "loneliness-after-leaving",
+      "format": "reflective_letter",
+      "topic": "healing",
+      "opening": "Missing someone after leaving does not automatically mean leaving was a mistake.",
+      "scene": "The room is quieter, the routine is different, and your mind remembers the best moments before it remembers why you needed distance.",
+      "insight": "Grief can coexist with a wise decision. You can miss a person, miss the routine, and still know that the relationship was not giving you the steadiness you needed.",
+      "action": "Write two honest lists: what you miss, and what you no longer have to endure. Read both when nostalgia edits the story.",
+      "question": "Are you missing the whole relationship, or one comforting part of it?"
+    },
+    {
+      "id": "conflict-repair",
+      "format": "three_part_lesson",
+      "topic": "conflict",
+      "opening": "A healthy relationship is not conflict-free; it is capable of repair.",
+      "scene": "Two people disagree, one becomes defensive, the other becomes quiet, and both later pretend everything is normal without discussing what actually happened.",
+      "insight": "Repair usually needs three things: a pause before the conversation becomes cruel, a specific account of what caused harm, and a practical agreement about what to do differently next time.",
+      "action": "After a disagreement, ask: What happened? What impact did it have? What can each of us do differently next time?",
+      "question": "When conflict happens, do you both move toward understanding or only toward silence?"
+    },
+    {
+      "id": "self-worth-and-selection",
+      "format": "journal_prompt",
+      "topic": "self-worth",
+      "opening": "Self-worth is not proven by being chosen by someone who keeps making you compete for basic care.",
+      "scene": "You become more agreeable, less honest, and easier to disappoint because you hope that being low-maintenance will finally make the other person stay.",
+      "insight": "Being easy to keep is not the same as being valued. A secure connection leaves room for your needs, your limits, and your real personality.",
+      "action": "Journal this sentence without editing it: 'In a relationship where I felt safe, I would no longer need to…'",
+      "question": "Which need have you been calling unreasonable simply because it was not met?"
+    }
+  ]
+}

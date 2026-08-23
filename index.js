@@ -15,6 +15,7 @@ const ffmpegPath = process.env.FFMPEG_PATH || "ffmpeg";
 const ROOT = __dirname;
 const CONTENT_NOTE = "This video contains original commentary generated with AI-assisted tools and synthetic narration. The topic is presented for general reflection and is not professional advice.";
 const ASSET_MANIFEST_PATH = path.join(ROOT, "asset-licenses.json");
+const CONTENT_BRIEFS_PATH = path.join(ROOT, "content-briefs.json");
 
 // ===== GOOGLE AUTH =====
 if (process.env.GOOGLE_CREDENTIALS) {
@@ -76,316 +77,105 @@ function shuffle(arr) {
 }
 
 // ===== SCRIPT ENGINE =====
-// ✅ IMPROVED: Multiple script templates for variety
-const scriptTemplates = [
+function loadContentBriefs() {
+  if (!fs.existsSync(CONTENT_BRIEFS_PATH)) {
+    throw new Error('content-briefs.json is required');
+  }
+
+  const data = JSON.parse(fs.readFileSync(CONTENT_BRIEFS_PATH, 'utf8'));
+  if (!Array.isArray(data.briefs) || data.briefs.length < 4) {
+    throw new Error('content-briefs.json must contain at least four editorial briefs');
+  }
+  return data.briefs;
+}
+
+function pickBrief(briefs) {
+  const requestedFormat = process.env.CONTENT_FORMAT;
+  const pool = requestedFormat
+    ? briefs.filter(brief => brief.format === requestedFormat)
+    : briefs;
+  if (pool.length === 0) throw new Error(`No briefs found for format: ${requestedFormat}`);
+  return pick(pool);
+}
+
+function renderBrief(brief) {
+  const formatSections = {
+    myth_reality: [
+      brief.opening,
+      'Let us slow down and separate the feeling from the conclusion.',
+      `The common assumption is easy to make: ${brief.scene}`,
+      `A more careful reading is this: ${brief.insight}`,
+      `Instead of rushing to a verdict, try this: ${brief.action}`,
+      `Keep this question with you: ${brief.question}`,
+    ],
+    mini_case: [
+      'Here is a small situation that is easy to recognize.',
+      brief.scene,
+      `At first, the story seems to be about the moment. The deeper issue may be this: ${brief.insight}`,
+      `The next useful move is simple: ${brief.action}`,
+      `Before you decide what it means, ask yourself: ${brief.question}`,
+    ],
+    conversation_script: [
+      brief.opening,
+      brief.scene,
+      `You could say: “${brief.action}”`,
+      `That sentence creates room for a real conversation because it focuses on your boundary rather than trying to control the other person. ${brief.insight}`,
+      `If the conversation starts again, return to this question: ${brief.question}`,
+    ],
+    practical_checklist: [
+      brief.opening,
+      `First, notice the evidence instead of the story you are telling yourself: ${brief.scene}`,
+      `Second, name the pattern without exaggerating it: ${brief.insight}`,
+      `Third, choose one small experiment: ${brief.action}`,
+      `Then review what you learned by asking: ${brief.question}`,
+    ],
+    reflective_letter: [
+      brief.opening,
+      'Dear you,',
+      brief.scene,
+      `You are allowed to hold two truths at once: ${brief.insight}`,
+      `For today, let your next step be gentle and specific: ${brief.action}`,
+      `When nostalgia or fear gets loud, come back to this question: ${brief.question}`,
+    ],
+    three_part_lesson: [
+      brief.opening,
+      `First, look at the situation itself: ${brief.scene}`,
+      `Second, look at the pattern underneath it: ${brief.insight}`,
+      `Third, choose a response that protects clarity and dignity: ${brief.action}`,
+      `The question that connects all three parts is: ${brief.question}`,
+    ],
+    journal_prompt: [
+      brief.opening,
+      brief.scene,
+      `Write without trying to sound reasonable: ${brief.insight}`,
+      `Now complete this prompt: “The next honest step I can take is…” ${brief.action}`,
+      `End with this question: ${brief.question}`,
+    ],
+  };
+
+  const sections = formatSections[brief.format];
+  if (!sections) throw new Error(`Unsupported content format: ${brief.format}`);
+  return sections.join('\n\n');
+}
+
+function generateContent() {
+  const brief = pickBrief(loadContentBriefs());
+  return { brief, script: renderBrief(brief) };
+}
 
-  // Template 1 - Inconsistency
-  (hook) => `
-${hook}
-
-At first, it feels like attention.
-
-They text you just enough.
-
-They give you little moments of affection.
-
-And that makes you believe something meaningful is growing.
-
-You start hoping.
-
-You start investing your emotions.
-
-You start imagining a future.
-
-But then, something slowly changes.
-
-Their replies become inconsistent.
-
-Their energy becomes confusing.
-
-Some days they act interested.
-
-Other days they feel distant.
-
-And suddenly, you are left questioning yourself.
-
-You wonder if you said something wrong.
-
-You wonder if you're asking for too much.
-
-You wonder if maybe you are simply overthinking.
-
-But listen carefully.
-
-You are not overthinking.
-
-You are responding to inconsistency.
-
-And inconsistency creates emotional chaos.
-
-Here is the truth most people learn too late.
-
-Confusion is never a sign of love.
-
-Real love does not make you feel unstable every day.
-
-People who genuinely want you
-do not leave you guessing.
-
-They show up.
-
-They communicate.
-
-They make their intentions clear.
-
-Because when someone values your presence,
-they do not risk losing you through mixed signals.
-
-If someone only appears when they are lonely,
-
-if they only give attention when it is convenient,
-
-if they disappear the moment effort is required,
-
-that is not love.
-
-That is emotional convenience.
-
-And emotional convenience will keep draining you for years if you let it.
-
-Healthy love feels calm.
-
-Healthy love feels secure.
-
-Healthy love does not force you to decode every message.
-
-So ask yourself this today.
-
-Do they bring peace into your life?
-
-Or do they bring anxiety every single day?
-
-Because the answer to that question
-
-can save you years of heartbreak.
-
-And if this message opened your eyes,
-
-like this video,
-
-and subscribe for more.
-`.trim(),
-
-  // Template 2 - Self worth
-  (hook) => `
-${hook}
-
-You kept making excuses for them.
-
-You told yourself they were just busy.
-
-You told yourself they had a lot going on.
-
-You told yourself that one day, they would show up differently.
-
-But days turned into weeks.
-
-Weeks turned into months.
-
-And you were still waiting.
-
-Still hoping.
-
-Still giving more than you were receiving.
-
-Here is what nobody tells you about one-sided love.
-
-It does not feel like rejection at first.
-
-It feels like patience.
-
-It feels like loyalty.
-
-It feels like you are being the bigger person.
-
-But at some point, patience becomes self-abandonment.
-
-And loyalty without reciprocity is just suffering with a better name.
-
-You deserve someone who does not need to be convinced to choose you.
-
-You deserve someone who shows up without being asked.
-
-You deserve someone who makes you feel wanted,
-not just tolerated.
-
-Because the right person will never make you feel like a burden.
-
-They will make you feel like a blessing.
-
-Stop chasing people who walk away easily.
-
-Your energy is too valuable to pour into empty vessels.
-
-Know your worth.
-
-And stop discounting it for people who cannot see it.
-
-If this hit home, share it with someone who needs to hear it.
-
-And subscribe for more truth like this.
-`.trim(),
-
-  // Template 3 - Red flags
-  (hook) => `
-${hook}
-
-They said all the right things in the beginning.
-
-They called you special.
-
-They told you they had never felt this way before.
-
-They made you feel chosen.
-
-But slowly, the words stopped matching the actions.
-
-They would say they missed you,
-but never make time to see you.
-
-They would say they cared,
-but disappear when you needed them most.
-
-They would promise to do better,
-and then repeat the same behavior again.
-
-This is what emotional manipulation looks like
-in the early stages.
-
-It is not always yelling.
-
-It is not always obvious.
-
-Sometimes it is just someone who is very good
-at making you feel crazy for noticing the inconsistency.
-
-If you have to convince someone to treat you with basic respect,
-that is your answer.
-
-If you have to beg for effort,
-that is your sign.
-
-If you feel more alone with them than without them,
-please listen to that feeling.
-
-Because your instincts are not lying to you.
-
-You are not too sensitive.
-
-You are not asking for too much.
-
-You are simply asking the wrong person.
-
-The right person will not make love feel like hard work.
-
-They will make it feel like coming home.
-
-Like this video if this spoke to you,
-and subscribe for more.
-`.trim(),
-
-  // Template 4 - Moving on
-  (hook) => `
-${hook}
-
-Letting go is one of the hardest things you will ever do.
-
-Not because you are weak.
-
-But because you invested so much.
-
-You gave your time.
-
-You gave your energy.
-
-You gave pieces of yourself
-that you cannot get back.
-
-And walking away from that
-feels like admitting defeat.
-
-But here is the truth.
-
-Staying in something that is slowly breaking you
-is not strength.
-
-It is fear.
-
-Fear of starting over.
-
-Fear of being alone.
-
-Fear that maybe this is the best you deserve.
-
-But you deserve so much more than someone
-who only shows up halfway.
-
-You deserve more than being someone's option.
-
-You deserve more than being kept around
-for when it is convenient.
-
-Healing starts the moment you stop
-trying to fix someone who does not want to be fixed.
-
-It starts when you choose yourself,
-even when it is terrifying.
-
-Even when it hurts.
-
-Even when you are not sure what comes next.
-
-Because on the other side of that pain
-is a version of you that is finally free.
-
-Free to receive the love you always deserved.
-
-Take care of yourself.
-
-And subscribe for more content like this.
-`.trim(),
-
-];
-
-const hooks = [
-  "If someone does this to you, they were never serious about you.",
-  "This relationship truth will save you years of heartbreak.",
-  "Stop ignoring this red flag before it ruins your peace.",
-  "If they keep doing this, you need to walk away.",
-  "One dating truth nobody tells you until it is too late.",
-  "This is what loving the wrong person actually looks like.",
-  "You are not too much. You are just too much for the wrong person.",
-  "Stop waiting for someone to choose you. Choose yourself.",
-  "The moment you accept being treated poorly, you teach them how to treat you.",
-  "This is the sign you needed to finally walk away.",
-];
-
-// ✅ IMPROVED: Random template + random hook each run
 function generateScript() {
-  const hook = pick(hooks);
-  const template = pick(scriptTemplates);
-  return template(hook);
+  return generateContent().script;
 }
 
 // ===== TITLE & DESCRIPTION =====
-function buildTitle(script) {
+function buildTitle(script, brief) {
   const hook = script.split("\n")[0].replace(/[.!?]+$/, "").trim();
-  const suffix = " | Relationship Reflection";
-  return `${hook}${suffix}`.substring(0, 100);
+  const label = brief?.topic ? ` | ${brief.topic.replace(/\b\w/g, letter => letter.toUpperCase())}` : " | Relationship Reflection";
+  return `${hook}${label}`.substring(0, 100);
 }
 
-function buildDescription(script, manifest) {
-  const topics = ["relationships", "self-worth", "emotional wellbeing"];
+function buildDescription(script, manifest, brief) {
+  const topics = brief?.topic ? ["relationships", brief.topic, "emotional wellbeing"] : ["relationships", "self-worth", "emotional wellbeing"];
   const assetCredits = manifest.credits || "All visual and audio assets are used under the permissions recorded in asset-licenses.json.";
   return [
     "A short, original reflection about relationships and self-worth.",
@@ -523,7 +313,9 @@ async function run() {
     const manifest = loadAssetManifest();
 
     // 1. Generate an original script from the channel's reviewed topic set.
-    const script = generateScript();
+    const content = generateContent();
+    const { script, brief } = content;
+    console.log("Brief:", brief.id, `(${brief.format})`);
     console.log("Hook:", script.split("\n")[0]);
 
     // 2. Create voice
@@ -556,8 +348,8 @@ async function run() {
 
     // 5. Upload
     await notify(`☁️ Uploading video (${videoSize} MB)...`);
-    const title = buildTitle(script);
-    const description = buildDescription(script, manifest);
+    const title = buildTitle(script, brief);
+    const description = buildDescription(script, manifest, brief);
     console.log("Title:", title);
 
     const privacyStatus = process.env.UPLOAD_PRIVACY_STATUS || "private";
@@ -592,8 +384,11 @@ module.exports = {
   buildDescription,
   buildTitle,
   createVideo,
+  generateContent,
   generateScript,
   getImages,
   getMusic,
   loadAssetManifest,
+  loadContentBriefs,
+  renderBrief,
 };

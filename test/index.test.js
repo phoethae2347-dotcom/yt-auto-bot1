@@ -5,10 +5,13 @@ const path = require("path");
 const {
   buildDescription,
   buildTitle,
+  generateContent,
   generateScript,
   getImages,
   getMusic,
   loadAssetManifest,
+  loadContentBriefs,
+  renderBrief,
 } = require("../index");
 
 const manifest = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "asset-licenses.json"), "utf8"));
@@ -18,6 +21,23 @@ test("generated script has a hook and meaningful body", () => {
   const script = generateScript();
   assert.ok(script.split("\n")[0].trim().length > 10);
   assert.ok(script.length > 300);
+});
+
+test("editorial briefs render different human-style formats", () => {
+  const briefs = loadContentBriefs();
+  const rendered = briefs.map(brief => renderBrief(brief));
+  const uniqueOpenings = new Set(rendered.map(script => script.split("\n\n")[0]));
+  assert.ok(briefs.length >= 8);
+  assert.equal(uniqueOpenings.size, briefs.length);
+  assert.ok(rendered.some(script => script.includes("You could say:")));
+  assert.ok(rendered.some(script => script.includes("Dear you,")));
+});
+
+test("generated content carries a brief id and format", () => {
+  const content = generateContent();
+  assert.ok(content.brief.id);
+  assert.ok(content.brief.format);
+  assert.ok(content.script.includes(content.brief.opening));
 });
 
 test("title stays within YouTube's 100-character limit", () => {
