@@ -1,46 +1,51 @@
 {
-  "version": 1,
+  "version": 2,
   "channelTheme": "Relationship communication and self-worth",
-  "editorialRule": "Use each brief as a starting point, then review the final narration before publishing.",
+  "contentGoal": "Every video must teach one practical idea, show one recognizable situation, and give the viewer one safe action to try.",
+  "editorialRule": "Use each brief as an educational starting point, then review the final narration for accuracy, nuance, originality, and practical viewer value before publishing.",
   "briefs": [
     {
       "id": "late-reply-vs-pattern",
       "format": "myth_reality",
       "topic": "communication",
-      "opening": "A late reply is not a verdict on your worth.",
+      "opening": "A late reply is a data point, not a verdict on your worth.",
       "scene": "One quiet evening can turn into an hour of checking your phone, rereading a message, and inventing an explanation that the other person never gave.",
+      "lesson": "Good communication judgment separates a single event from a repeated pattern. Look at frequency, context, follow-through, and whether the person can discuss the impact calmly.",
       "insight": "The useful question is not whether one reply was late. It is whether the relationship repeatedly leaves you guessing, refuses clear conversation, and expects you to carry all the emotional work.",
-      "action": "Notice the pattern for a week. Then ask one direct, calm question instead of building a case in your head.",
+      "action": "Track the pattern for one week without collecting evidence to punish anyone. Then ask one direct, calm question about expectations for communication.",
       "question": "Are you reacting to one moment, or finally noticing a pattern?"
     },
     {
       "id": "the-apology-test",
       "format": "mini_case",
       "topic": "accountability",
-      "opening": "An apology sounds convincing until you watch what happens next.",
+      "opening": "An apology becomes useful when it explains what will change next.",
       "scene": "Someone says, 'I am sorry you felt hurt,' the tension disappears for a day, and then the same behavior returns as if the conversation never happened.",
+      "lesson": "A repair-oriented apology usually names the action, acknowledges its impact, avoids excuses, and includes a realistic next step. The test is consistent behavior, not dramatic wording.",
       "insight": "A meaningful apology does not require perfection. It usually includes a clear description of what happened, responsibility without excuses, and a visible attempt to change the pattern.",
-      "action": "Listen less for dramatic words and more for consistent behavior over time.",
+      "action": "After an apology, ask yourself three questions: What was acknowledged? What will be different? Has the change lasted long enough to trust?",
       "question": "Did the apology repair the relationship, or only end the uncomfortable conversation?"
     },
     {
       "id": "boundary-without-punishment",
       "format": "conversation_script",
       "topic": "boundaries",
-      "opening": "A boundary is not a punishment disguised as silence.",
+      "opening": "A boundary is a plan for your behavior, not a punishment disguised as silence.",
       "scene": "You keep saying yes to late plans, last-minute cancellations, and conversations that become disrespectful because you are afraid that one firm sentence will make someone leave.",
+      "lesson": "A useful boundary has three parts: name the situation, state what you will do, and follow through without trying to control the other person.",
       "insight": "A boundary describes what you will do, not how you will control another person. It can be simple: 'I am happy to talk when we can speak respectfully. I will pause this conversation for now.'",
-      "action": "Choose one recurring situation and write the sentence you can calmly repeat without explaining it ten different ways.",
+      "action": "Choose one recurring situation and write a sentence that starts with 'If this continues, I will…' Then use it calmly and consistently.",
       "question": "What would protecting your peace sound like if it did not need to sound angry?"
     },
     {
       "id": "chemistry-and-consistency",
       "format": "myth_reality",
       "topic": "dating expectations",
-      "opening": "Strong chemistry can be real and still tell you very little about long-term safety.",
+      "opening": "Strong chemistry can be real and still tell you very little about long-term reliability.",
       "scene": "The first few conversations are effortless. You share personal stories quickly, imagine the future, and mistake emotional intensity for evidence that the relationship is already dependable.",
+      "lesson": "Chemistry describes a feeling in a moment. Consistency is observed across ordinary days, disappointment, limits, responsibility, and repair after mistakes.",
       "insight": "Chemistry describes how a connection feels in a moment. Consistency shows how a person handles ordinary days, disappointment, limits, and responsibility.",
-      "action": "Let time provide information. Notice whether words, plans, and care remain aligned after the excitement becomes familiar.",
+      "action": "Let time provide information. Compare words with plans, promises with follow-through, and affection with respect for your limits.",
       "question": "Are you attracted to who this person is, or to the future you are filling in for them?"
     },
     {
@@ -49,19 +54,10 @@
       "topic": "reciprocity",
       "opening": "You can learn a lot about reciprocity by looking at the calendar, not just the conversation.",
       "scene": "You initiate every call, travel every time, remember every important date, and keep calling the relationship balanced because the conversations themselves still feel warm.",
+      "lesson": "Reciprocity is easier to evaluate through observable actions: who initiates, who follows through, who repairs misunderstandings, and whether effort can be discussed openly.",
       "insight": "Warmth matters, but effort matters too. A relationship becomes exhausting when one person is always the planner, the repairer, and the person keeping the connection alive.",
-      "action": "For the next two weeks, stop over-functioning. Keep communicating honestly, but leave room for the other person to initiate and follow through.",
+      "action": "For the next two weeks, write down initiation, follow-through, and repair without exaggerating either side. Use the pattern to start an honest conversation.",
       "question": "If you stopped carrying the connection, what part of it would continue on its own?"
-    },
-    {
-      "id": "loneliness-after-leaving",
-      "format": "reflective_letter",
-      "topic": "healing",
-      "opening": "Missing someone after leaving does not automatically mean leaving was a mistake.",
-      "scene": "The room is quieter, the routine is different, and your mind remembers the best moments before it remembers why you needed distance.",
-      "insight": "Grief can coexist with a wise decision. You can miss a person, miss the routine, and still know that the relationship was not giving you the steadiness you needed.",
-      "action": "Write two honest lists: what you miss, and what you no longer have to endure. Read both when nostalgia edits the story.",
-      "question": "Are you missing the whole relationship, or one comforting part of it?"
     },
     {
       "id": "conflict-repair",
@@ -69,19 +65,32 @@
       "topic": "conflict",
       "opening": "A healthy relationship is not conflict-free; it is capable of repair.",
       "scene": "Two people disagree, one becomes defensive, the other becomes quiet, and both later pretend everything is normal without discussing what actually happened.",
+      "lesson": "A practical repair sequence is: pause before the conversation becomes cruel, describe the specific impact, and agree on one observable change for next time.",
       "insight": "Repair usually needs three things: a pause before the conversation becomes cruel, a specific account of what caused harm, and a practical agreement about what to do differently next time.",
       "action": "After a disagreement, ask: What happened? What impact did it have? What can each of us do differently next time?",
       "question": "When conflict happens, do you both move toward understanding or only toward silence?"
     },
     {
-      "id": "self-worth-and-selection",
+      "id": "needs-and-self-worth",
       "format": "journal_prompt",
       "topic": "self-worth",
-      "opening": "Self-worth is not proven by being chosen by someone who keeps making you compete for basic care.",
+      "opening": "A reasonable need does not become unreasonable just because someone refuses to meet it.",
       "scene": "You become more agreeable, less honest, and easier to disappoint because you hope that being low-maintenance will finally make the other person stay.",
+      "lesson": "Self-worth becomes practical when you can name a need, make a clear request, notice the response, and decide what you will do if the pattern does not change.",
       "insight": "Being easy to keep is not the same as being valued. A secure connection leaves room for your needs, your limits, and your real personality.",
-      "action": "Journal this sentence without editing it: 'In a relationship where I felt safe, I would no longer need to…'",
+      "action": "Journal this sentence without editing it: 'In a relationship where I felt respected, I would be able to ask for…' Then turn one answer into a clear request.",
       "question": "Which need have you been calling unreasonable simply because it was not met?"
+    },
+    {
+      "id": "nostalgia-vs-evidence",
+      "format": "reflective_letter",
+      "topic": "healing and decision-making",
+      "opening": "Missing someone is information about attachment, not automatic proof that returning is wise.",
+      "scene": "The room is quieter, the routine is different, and your mind remembers the best moments before it remembers why you needed distance.",
+      "lesson": "When emotions edit the story, compare specific memories with the repeated pattern, the cost to your wellbeing, and the evidence of lasting change.",
+      "insight": "Grief can coexist with a wise decision. You can miss a person, miss the routine, and still know that the relationship was not giving you the steadiness you needed.",
+      "action": "Write two honest lists: what you miss, and what repeatedly harmed your trust. Read both before making a decision based only on a difficult evening.",
+      "question": "Are you missing the whole relationship, or one comforting part of it?"
     }
   ]
 }

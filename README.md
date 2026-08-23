@@ -50,9 +50,9 @@ Install dependencies with `npm ci`, install FFmpeg and `edge-tts`, and run `npm 
 
 ## Content quality guidance
 
-The generator reads `content-briefs.json` instead of selecting one long script template. Each brief has a distinct topic, format, scene, insight, action, and viewer question. The renderer uses different structures for myth-versus-reality, mini-case, conversation script, practical checklist, reflective letter, three-part lesson, and journal prompt. This creates real editorial variation rather than merely changing a hook or swapping an image.
+The generator reads `content-briefs.json` instead of selecting one long script template. Each brief must contain a distinct topic, format, scene, lesson, insight, action, and viewer question. The renderer uses different structures for myth-versus-reality, mini-case, conversation script, practical checklist, reflective letter, three-part lesson, and journal prompt. This creates real editorial variation while ensuring every video teaches one practical idea and gives the viewer one safe action to try.
 
-Use the briefs as researched starting points, not as a substitute for editorial review. To add a new format, add a new brief with a new `format` value and add its narration structure to `renderBrief()` in `index.js`. To test one format locally, set `CONTENT_FORMAT` to a supported value. Avoid diagnosing viewers, making absolute claims about relationships, or presenting the script as therapy. A human should check factual tone, originality, readability, voice pronunciation, image suitability, licensing, and the final disclosure before a video is made public.
+Use the briefs as educational starting points, not as a substitute for editorial review. To add a new format, add a new brief with a new `format` value and add its narration structure to `renderBrief()` in `index.js`. Every new brief must explain one learnable principle, one practical action, and one reflection question; the runtime quality gate rejects briefs that omit those fields. To test one format locally, set `CONTENT_FORMAT` to a supported value. Avoid diagnosing viewers, making absolute claims about relationships, or presenting the script as therapy. A human should check factual tone, originality, readability, voice pronunciation, image suitability, licensing, and the final disclosure before a video is made public.
 
 ## Sources
 

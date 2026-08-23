@@ -67,6 +67,15 @@ function loadContentBriefs() {
   if (!Array.isArray(data.briefs) || data.briefs.length < 4) {
     throw new Error('content-briefs.json must contain at least four editorial briefs');
   }
+  const requiredFields = ['id', 'format', 'topic', 'opening', 'scene', 'lesson', 'insight', 'action', 'question'];
+  for (const brief of data.briefs) {
+    for (const field of requiredFields) {
+      const minimumLength = field === 'format' ? 1 : field === 'topic' ? 3 : 12;
+      if (typeof brief[field] !== 'string' || brief[field].trim().length < minimumLength) {
+        throw new Error(`Brief ${brief.id || 'unknown'} is missing an educational ${field}`);
+      }
+    }
+  }
   return data.briefs;
 }
 
@@ -85,6 +94,7 @@ function renderBrief(brief) {
       brief.opening,
       'Let us slow down and separate the feeling from the conclusion.',
       `The common assumption is easy to make: ${brief.scene}`,
+      `The practical lesson is this: ${brief.lesson}`,
       `A more careful reading is this: ${brief.insight}`,
       `Instead of rushing to a verdict, try this: ${brief.action}`,
       `Keep this question with you: ${brief.question}`,
@@ -93,6 +103,7 @@ function renderBrief(brief) {
       'Here is a small situation that is easy to recognize.',
       brief.scene,
       `At first, the story seems to be about the moment. The deeper issue may be this: ${brief.insight}`,
+      `The skill being taught is: ${brief.lesson}`,
       `The next useful move is simple: ${brief.action}`,
       `Before you decide what it means, ask yourself: ${brief.question}`,
     ],
@@ -100,6 +111,7 @@ function renderBrief(brief) {
       brief.opening,
       brief.scene,
       `You could say: “${brief.action}”`,
+      `Why this helps: ${brief.lesson}`,
       `That sentence creates room for a real conversation because it focuses on your boundary rather than trying to control the other person. ${brief.insight}`,
       `If the conversation starts again, return to this question: ${brief.question}`,
     ],
@@ -107,6 +119,7 @@ function renderBrief(brief) {
       brief.opening,
       `First, notice the evidence instead of the story you are telling yourself: ${brief.scene}`,
       `Second, name the pattern without exaggerating it: ${brief.insight}`,
+      `Why this checklist matters: ${brief.lesson}`,
       `Third, choose one small experiment: ${brief.action}`,
       `Then review what you learned by asking: ${brief.question}`,
     ],
@@ -114,6 +127,7 @@ function renderBrief(brief) {
       brief.opening,
       'Dear you,',
       brief.scene,
+      `What this moment can teach you: ${brief.lesson}`,
       `You are allowed to hold two truths at once: ${brief.insight}`,
       `For today, let your next step be gentle and specific: ${brief.action}`,
       `When nostalgia or fear gets loud, come back to this question: ${brief.question}`,
@@ -121,13 +135,15 @@ function renderBrief(brief) {
     three_part_lesson: [
       brief.opening,
       `First, look at the situation itself: ${brief.scene}`,
-      `Second, look at the pattern underneath it: ${brief.insight}`,
-      `Third, choose a response that protects clarity and dignity: ${brief.action}`,
+      `Second, learn the principle underneath it: ${brief.lesson}`,
+      `Third, look at the pattern underneath it: ${brief.insight}`,
+      `Finally, choose a response that protects clarity and dignity: ${brief.action}`,
       `The question that connects all three parts is: ${brief.question}`,
     ],
     journal_prompt: [
       brief.opening,
       brief.scene,
+      `The lesson behind this prompt is: ${brief.lesson}`,
       `Write without trying to sound reasonable: ${brief.insight}`,
       `Now complete this prompt: “The next honest step I can take is…” ${brief.action}`,
       `End with this question: ${brief.question}`,

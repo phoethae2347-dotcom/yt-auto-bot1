@@ -34,11 +34,20 @@ test("editorial briefs render different human-style formats", () => {
   assert.ok(rendered.some(script => script.includes("Dear you,")));
 });
 
-test("generated content carries a brief id and format", () => {
+test("generated content carries a brief id, format, and lesson", () => {
   const content = generateContent();
   assert.ok(content.brief.id);
   assert.ok(content.brief.format);
+  assert.ok(content.brief.lesson.length >= 12);
   assert.ok(content.script.includes(content.brief.opening));
+  assert.ok(content.script.includes(content.brief.lesson));
+});
+
+test("every brief teaches one practical idea and gives one action", () => {
+  const briefs = loadContentBriefs();
+  assert.ok(briefs.every(brief => brief.lesson.length >= 12));
+  assert.ok(briefs.every(brief => brief.action.length >= 12));
+  assert.ok(briefs.every(brief => brief.question.length >= 12));
 });
 
 test("title stays within YouTube's 100-character limit", () => {
@@ -54,7 +63,7 @@ test("description contains AI disclosure and viewer-safety note", () => {
   assert.ok(Buffer.byteLength(description, "utf8") <= 5000);
 });
 
-test("dynamic policy allows only the intended Wikimedia CC0 source", () => {
+test("dynamic policy allows only the intended Openverse CC0 source", () => {
   const policy = loadImageSourcePolicy();
   assert.equal(policy.status, "dynamic");
   assert.equal(policy.source, "Openverse");
