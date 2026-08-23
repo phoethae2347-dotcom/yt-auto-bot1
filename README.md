@@ -12,11 +12,11 @@ YouTube monetization review expects original and authentic content and may rejec
 
 ## Asset rights gate
 
-The old bundled `images/` and `music/` folders were removed. The bot now uses only the eight files in `licensed-images/`, which are CC0 1.0 records retrieved from Wikimedia Commons and listed individually in `asset-licenses.json`. Each record includes the source page, download URL, creator field, license URL, and SHA-256 hash.
+The old bundled `images/` and `music/` folders were removed. Every run now queries Wikimedia Commons and downloads four fresh CC0 candidates into the ignored `.runtime/images/` directory. These files are not committed as a reusable image pool. The current run's source page, download URL, creator field, license URL, and SHA-256 hash are recorded in `.runtime/current-assets.json` and included in the YouTube description.
 
-The runtime refuses to render any file that is not listed in the verified manifest. Music is optional; when no verified music exists, the video uses narration-only audio instead of silently selecting an unverified track. CC0 addresses copyright licensing, but the channel owner should still check the source page and avoid images containing identifiable people, private scenes, trademarks, or other non-copyright restrictions.
+Wikimedia page IDs are stored in `state/image-history.json`, and the GitHub Actions workflow restores/saves that file through the Actions cache. A later run excludes page IDs already used by earlier runs, and selection prefers different creators within a video. If the API is unavailable or it cannot find enough new verified candidates, the run stops; it does not fall back to an old image or an unverified source. Background music is currently disabled, so the video uses narration-only audio.
 
-Do not treat an asset as risk-free merely because it is found online or appears to be AI-generated. Re-check source pages and licenses periodically before relying on a video for commercial publishing.
+CC0 addresses copyright licensing, but the channel owner should still check the source page and final edit for privacy, publicity/personality rights, trademarks, logos, private locations, misleading endorsement, and other local-law restrictions. Do not treat an asset as risk-free merely because it is found online or appears to be AI-generated.
 
 ## Required secrets
 
@@ -46,7 +46,7 @@ The workflow passes conservative defaults. Override these only after review:
 
 ## Local checks
 
-Install dependencies with `npm ci`, install FFmpeg and `edge-tts`, and run `npm test`. A real run requires valid Google credentials, the verified asset manifest, and the relevant runtime settings. Keep generated `credentials.json`, `token.json`, `voice/`, and `output/` files out of version control.
+Install dependencies with `npm ci`, install FFmpeg and `edge-tts`, and run `npm test`. A real run requires valid Google credentials, network access to Wikimedia Commons, and the dynamic source policy in `asset-licenses.json`. Keep generated `credentials.json`, `token.json`, `.runtime/`, `voice/`, and `output/` files out of version control.
 
 ## Content quality guidance
 

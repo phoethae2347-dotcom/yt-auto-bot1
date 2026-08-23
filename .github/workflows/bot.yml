@@ -12,15 +12,23 @@ concurrency:
 
 permissions:
   contents: read
+  actions: write
 
 jobs:
   run-bot:
     runs-on: ubuntu-latest
     timeout-minutes: 30
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Restore image rotation history
+        uses: actions/cache/restore@v4
+        with:
+          path: state/image-history.json
+          key: image-history-${{ github.ref_name }}-${{ github.run_id }}
+          restore-keys: |
+            image-history-${{ github.ref_name }}-
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -50,4 +58,12 @@ jobs:
           TTS_VOICE: en-US-JennyNeural
           DEFAULT_LANGUAGE: en
           DEFAULT_AUDIO_LANGUAGE: en-US
+          WIKIMEDIA_USER_AGENT: yt-auto-bot1/1.0 (licensed image downloader; repository owner contact)
         run: node index.js
+
+      - name: Save image rotation history
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: state/image-history.json
+          key: image-history-${{ github.ref_name }}-${{ github.run_id }}

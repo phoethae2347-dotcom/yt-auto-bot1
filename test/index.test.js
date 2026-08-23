@@ -1,21 +1,22 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const fs = require("fs");
-const path = require("path");
 const {
   buildDescription,
   buildTitle,
   generateContent,
   generateScript,
-  getImages,
-  getMusic,
-  loadAssetManifest,
   loadContentBriefs,
   renderBrief,
 } = require("../index");
+const {
+  candidateFromPage,
+  loadImageSourcePolicy,
+  selectFreshCandidates,
+} = require("../image-source");
 
-const manifest = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "asset-licenses.json"), "utf8"));
-manifest.status = "verified";
+const assets = {
+  credits: "Fresh CC0 visual credits are recorded in .runtime/current-assets.json.",
+};
 
 test("generated script has a hook and meaningful body", () => {
   const script = generateScript();
@@ -47,24 +48,45 @@ test("title stays within YouTube's 100-character limit", () => {
 });
 
 test("description contains AI disclosure and viewer-safety note", () => {
-  const description = buildDescription("Original commentary.", manifest);
+  const description = buildDescription("Original commentary.", assets);
   assert.match(description, /AI-assisted tools/);
   assert.match(description, /not therapy/);
   assert.ok(Buffer.byteLength(description, "utf8") <= 5000);
 });
 
-test("asset selection only returns files recorded in the manifest", () => {
-  const images = getImages(manifest);
-  const music = getMusic(manifest);
-  assert.equal(images.length, 4);
-  assert.ok(images.every(file => file.startsWith(path.join(__dirname, "..", "licensed-images"))));
-  assert.equal(music, null);
+test("dynamic policy allows only the intended Wikimedia CC0 source", () => {
+  const policy = loadImageSourcePolicy();
+  assert.equal(policy.status, "dynamic");
+  assert.equal(policy.source, "Wikimedia Commons");
+  assert.deepEqual(policy.allowedLicenses, ["CC0 1.0 Universal Public Domain Dedication"]);
+  assert.ok(policy.searchQueries.length >= 8);
 });
 
-test("verified manifest validates licensed assets and hashes", () => {
-  const loaded = loadAssetManifest();
-  assert.equal(loaded.status, "verified");
-  assert.equal(loaded.images.length, 8);
-  assert.ok(loaded.assetRecords.every(record => record.license.includes("CC0")));
-  assert.ok(loaded.assetRecords.every(record => /^[a-f0-9]{64}$/.test(record.sha256)));
+test("candidate filter rejects non-CC0 and identifiable-person titles", () => {
+  const page = {
+    pageid: 42,
+    title: "File:Quiet forest landscape.jpg",
+    imageinfo: [{
+      mime: "image/jpeg",
+      width: 1280,
+      height: 900,
+      url: "https://upload.wikimedia.org/example.jpg",
+      thumburl: "https://upload.wikimedia.org/example-thumb.jpg",
+      extmetadata: {
+        LicenseShortName: { value: "CC0" },
+        Artist: { value: "Creator A" },
+      },
+    }],
+  };
+  assert.equal(candidateFromPage(page, "forest" ).license, "CC0 1.0 Universal Public Domain Dedication");
+  assert.equal(candidateFromPage({ ...page, title: "File:Portrait person.jpg" }, "forest"), null);
+  assert.equal(candidateFromPage({ ...page, imageinfo: [{ ...page.imageinfo[0], extmetadata: { LicenseShortName: { value: "CC BY" } } }] }, "forest"), null);
+});
+
+test("rotation excludes previously used image IDs and prefers fresh creators", () => {
+  const candidates = [1, 2, 3, 4, 5].map((id, index) => ({ id: String(id), creator: `Creator ${index}`, title: `Image ${id}` }));
+  const selected = selectFreshCandidates(candidates, ["1"], 4);
+  assert.equal(selected.length, 4);
+  assert.ok(selected.every(candidate => candidate.id !== "1"));
+  assert.equal(new Set(selected.map(candidate => candidate.creator)).size, 4);
 });

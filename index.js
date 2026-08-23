@@ -2,20 +2,19 @@ require("dotenv").config();
 
 const fs = require("fs");
 const path = require("path");
-const crypto = require("crypto");
 const { execFile } = require("child_process");
 const { promisify } = require("util");
 const execFileAsync = promisify(execFile);
 const TelegramBot = require("node-telegram-bot-api");
 const { createVoice } = require("./createVoice");
 const { uploadVideo } = require("./upload");
+const { downloadFreshImages } = require("./image-source");
 
 const bot = process.env.BOT_TOKEN ? new TelegramBot(process.env.BOT_TOKEN, { polling: false }) : null;
 const CHAT_ID = process.env.CHAT_ID;
 const ffmpegPath = process.env.FFMPEG_PATH || "ffmpeg";
 const ROOT = __dirname;
 const CONTENT_NOTE = "This video contains original commentary generated with AI-assisted tools and synthetic narration. The topic is presented for general reflection and is not professional advice.";
-const ASSET_MANIFEST_PATH = path.join(ROOT, "asset-licenses.json");
 const CONTENT_BRIEFS_PATH = path.join(ROOT, "content-briefs.json");
 
 // ===== GOOGLE AUTH =====
@@ -41,43 +40,7 @@ async function notify(msg) {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 });
 
-function loadAssetManifest() {
-  if (!fs.existsSync(ASSET_MANIFEST_PATH)) {
-    throw new Error("asset-licenses.json is required; do not upload unverified assets");
-  }
 
-  const manifest = JSON.parse(fs.readFileSync(ASSET_MANIFEST_PATH, "utf8"));
-  if (manifest.status !== "verified") {
-    throw new Error("Asset manifest is not verified; refusing to publish");
-  }
-
-  if (!Array.isArray(manifest.assetRecords) || manifest.assetRecords.length < 4) {
-    throw new Error("Asset manifest must include at least four asset records");
-  }
-
-  const recordsByPath = new Map(manifest.assetRecords.map(record => [record.path, record]));
-  for (const assetPath of [...(manifest.images || []), ...(manifest.music || [])]) {
-    const record = recordsByPath.get(assetPath);
-    if (!record) throw new Error(`Missing license record for ${assetPath}`);
-    if (record.license !== "CC0 1.0 Universal Public Domain Dedication") {
-      throw new Error(`Unsupported asset license for ${assetPath}`);
-    }
-    const fullPath = resolveAsset(assetPath);
-    if (!fs.existsSync(fullPath)) throw new Error(`Licensed asset is missing: ${assetPath}`);
-    const actualHash = crypto.createHash("sha256").update(fs.readFileSync(fullPath)).digest("hex");
-    if (actualHash !== record.sha256) throw new Error(`Asset integrity check failed: ${assetPath}`);
-  }
-
-  return manifest;
-}
-
-function resolveAsset(relativePath) {
-  const resolved = path.resolve(ROOT, relativePath);
-  if (!resolved.startsWith(ROOT + path.sep)) {
-    throw new Error(`Invalid asset path: ${relativePath}`);
-  }
-  return resolved;
-}
 
 // ===== HELPERS =====
 function pick(arr) {
@@ -211,29 +174,9 @@ function buildDescription(script, manifest, brief) {
   ].join("\n");
 }
 
-// ===== IMAGES =====
-function getImages(manifest) {
-  const verified = (manifest.images || [])
-    .filter(file => /\.(jpg|jpeg|png)$/i.test(file))
-    .map(resolveAsset)
-    .filter(file => fs.existsSync(file));
-
-  if (verified.length < 4) {
-    throw new Error(`Need at least 4 verified images, found ${verified.length}`);
-  }
-
-  return shuffle(verified).slice(0, 4);
-}
-
-// ===== MUSIC =====
-function getMusic(manifest) {
-  const verified = (manifest.music || [])
-    .filter(file => /\.mp3$/i.test(file))
-    .map(resolveAsset)
-    .filter(file => fs.existsSync(file));
-
-  // Music is optional: never use an unverified bundled track.
-  return verified.length > 0 ? resolveAsset(`music/${pick(verified)}`) : null;
+// ===== ASSETS =====
+async function getFreshAssets() {
+  return downloadFreshImages({ count: 4 });
 }
 
 // ===== AUDIO CHECK =====
@@ -330,8 +273,6 @@ async function run() {
     console.log("===== START RUN =====");
     console.log("Time:", new Date().toISOString());
 
-    const manifest = loadAssetManifest();
-
     // 1. Generate an original script from the channel's reviewed topic set.
     const content = generateContent();
     const { script, brief } = content;
@@ -347,11 +288,12 @@ async function run() {
       throw new Error(`Audio file invalid or too small: ${voiceFile}`);
     }
 
-    // 3. Select only assets recorded as verified in the manifest.
-    const images = getImages(manifest);
-    const music = getMusic(manifest);
-    console.log("Images selected:", images);
-    console.log("Music selected:", music || "none (narration-only mix)");
+    // 3. Download a fresh set of source-verified images for this run.
+    const assets = await getFreshAssets();
+    const images = assets.images;
+    const music = null;
+    console.log("Fresh images downloaded:", images);
+    console.log("Music selected:", "none (narration-only mix)");
 
     // 4. Create video
     await notify("🎬 Creating video...");
@@ -369,7 +311,7 @@ async function run() {
     // 5. Upload
     await notify(`☁️ Uploading video (${videoSize} MB)...`);
     const title = buildTitle(script, brief);
-    const description = buildDescription(script, manifest, brief);
+    const description = buildDescription(script, assets, brief);
     console.log("Title:", title);
 
     const privacyStatus = process.env.UPLOAD_PRIVACY_STATUS || "private";
@@ -406,9 +348,7 @@ module.exports = {
   createVideo,
   generateContent,
   generateScript,
-  getImages,
-  getMusic,
-  loadAssetManifest,
+  getFreshAssets,
   loadContentBriefs,
   renderBrief,
 };
