@@ -3,8 +3,10 @@ name: Generate and review YouTube video
 on:
   workflow_dispatch:
   schedule:
-    # Once daily; publish one reviewed-by-code educational video per run.
+    # Three times daily, spaced eight hours apart (UTC).
     - cron: "30 0 * * *"
+    - cron: "30 8 * * *"
+    - cron: "30 16 * * *"
 
 concurrency:
   group: youtube-bot

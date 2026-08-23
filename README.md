@@ -4,7 +4,7 @@ This project generates short-form relationship reflections with synthetic narrat
 
 ## Important publishing policy
 
-The scheduled workflow is configured for one public upload per day after the code-level quality gates pass. The upload step still requires `ALLOW_PUBLIC_UPLOAD=true`, and the workflow sets it explicitly. A successful upload is not a guarantee of views, YPP acceptance, ad suitability, or revenue.
+The scheduled workflow is configured for three public uploads per day, spaced eight hours apart, after the code-level quality gates pass. The upload step still requires `ALLOW_PUBLIC_UPLOAD=true`, and the workflow sets it explicitly. A successful upload is not a guarantee of views, YPP acceptance, ad suitability, or revenue.
 
 The description states that the commentary and narration use AI-assisted tools. The API request also sets YouTube's `status.containsSyntheticMedia=true`. This is appropriate for the current synthetic narration workflow, but the channel owner remains responsible for selecting the correct disclosure for the actual video in YouTube Studio.
 
@@ -43,6 +43,7 @@ The workflow passes public-upload and enhanced-editing defaults. Override these 
 | `VIDEO_HEIGHT` | `1920` | Vertical render height; use `960` for a faster preview |
 | `VIDEO_FPS` | `24` | Render frame rate |
 | `SKIP_UPLOAD` | unset | Set to `true` for a local preview without YouTube upload |
+| Schedule | `00:30`, `08:30`, `16:30` UTC | Three scheduled runs per day; in Myanmar time (UTC+6:30), approximately 07:00, 15:00, and 23:00 |
 | `TTS_VOICE` | `en-US-JennyNeural` | Edge TTS voice |
 | `DEFAULT_LANGUAGE` | `en` | Video metadata language |
 | `DEFAULT_AUDIO_LANGUAGE` | `en-US` | Spoken audio language |
