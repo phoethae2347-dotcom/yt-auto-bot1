@@ -1,16 +1,16 @@
 # Dynamic visual asset review
 
-The former bundled `images/` directory and its committed image pool were removed. Each bot run now queries Wikimedia Commons and downloads a fresh set of four images into the ignored `.runtime/images/` directory. The downloaded files are not reused as a local pool.
+The former bundled `images/` directory and its committed image pool were removed. Each bot run now queries Openverse and downloads a fresh set of four images into the ignored `.runtime/images/` directory. The downloaded files are not reused as a local pool.
 
 ## Source and license filter
 
-The downloader uses the Wikimedia Commons Action API and requests `imageinfo` metadata. It accepts only candidates whose reported `LicenseShortName` is exactly `CC0`, then records the source page, download URL, creator field, license URL, and SHA-256 hash in `.runtime/current-assets.json`. It rejects non-image files, small files, and titles containing obvious people/portrait/private-scene terms.
+The downloader uses the Openverse image API with `license=cc0`, `image_type=photo`, and dead-link filtering. It accepts only candidates whose reported license is exactly `cc0`, requires a source landing page and usable dimensions, then records the provider, source page, download URL, creator field, license URL, and SHA-256 hash in `.runtime/current-assets.json`. It rejects non-image files, small files, and titles containing obvious people/portrait/private-scene terms.
 
-Wikimedia's API etiquette guidance requires a meaningful User-Agent, sequential requests, caching where appropriate, and backoff when the service rate-limits a client. The downloader follows those constraints and stops if it cannot obtain enough fresh verified candidates; it does not silently reuse old images or fetch an unverified fallback.
+Openverse documents anonymous API access for typical usage but also rate-limits API users and prohibits scraping. The downloader makes a small sequential search for each curated query, uses a meaningful User-Agent, applies backoff on temporary errors, and does not paginate exhaustively. It stops if it cannot obtain enough fresh verified candidates; it does not silently reuse old images or fetch an unverified fallback.
 
 ## Non-reuse history
 
-Wikimedia page IDs are stored in `state/image-history.json`. The GitHub Actions workflow restores and saves this state through the Actions cache so a later run avoids previously used page IDs. The selection also prefers different creators within one video when enough candidates are available.
+Openverse result IDs are stored in `state/image-history.json`. The GitHub Actions workflow restores and saves this state through the Actions cache so a later run avoids previously used result IDs. The selection also prefers different creators within one video when enough candidates are available.
 
 ## Rights limitations
 
@@ -20,6 +20,8 @@ Background music is currently disabled because no music source has a verified dy
 
 ## Sources
 
+- [Openverse API](https://api.openverse.org/)
+- [Openverse](https://openverse.org/)
 - [Wikimedia Commons API/MediaWiki](https://commons.wikimedia.org/wiki/Commons:API/MediaWiki)
 - [MediaWiki API: Etiquette](https://www.mediawiki.org/wiki/API:Etiquette)
 - [Wikimedia Commons Licensing](https://commons.wikimedia.org/wiki/Commons:Licensing)

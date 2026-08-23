@@ -57,30 +57,28 @@ test("description contains AI disclosure and viewer-safety note", () => {
 test("dynamic policy allows only the intended Wikimedia CC0 source", () => {
   const policy = loadImageSourcePolicy();
   assert.equal(policy.status, "dynamic");
-  assert.equal(policy.source, "Wikimedia Commons");
-  assert.deepEqual(policy.allowedLicenses, ["CC0 1.0 Universal Public Domain Dedication"]);
+  assert.equal(policy.source, "Openverse");
+  assert.deepEqual(policy.allowedLicenses, ["cc0"]);
   assert.ok(policy.searchQueries.length >= 8);
 });
 
 test("candidate filter rejects non-CC0 and identifiable-person titles", () => {
   const page = {
-    pageid: 42,
-    title: "File:Quiet forest landscape.jpg",
-    imageinfo: [{
-      mime: "image/jpeg",
-      width: 1280,
-      height: 900,
-      url: "https://upload.wikimedia.org/example.jpg",
-      thumburl: "https://upload.wikimedia.org/example-thumb.jpg",
-      extmetadata: {
-        LicenseShortName: { value: "CC0" },
-        Artist: { value: "Creator A" },
-      },
-    }],
+    id: "ov-42",
+    title: "Quiet forest landscape",
+    license: "cc0",
+    license_url: "https://creativecommons.org/publicdomain/zero/1.0/",
+    creator: "Creator A",
+    source: "flickr",
+    foreign_landing_url: "https://www.flickr.com/photos/example/42",
+    url: "https://live.staticflickr.com/example.jpg",
+    thumbnail: "https://live.staticflickr.com/example-thumb.jpg",
+    width: 1280,
+    height: 900,
   };
-  assert.equal(candidateFromPage(page, "forest" ).license, "CC0 1.0 Universal Public Domain Dedication");
-  assert.equal(candidateFromPage({ ...page, title: "File:Portrait person.jpg" }, "forest"), null);
-  assert.equal(candidateFromPage({ ...page, imageinfo: [{ ...page.imageinfo[0], extmetadata: { LicenseShortName: { value: "CC BY" } } }] }, "forest"), null);
+  assert.equal(candidateFromPage(page, "forest").license, "CC0 1.0 Universal Public Domain Dedication");
+  assert.equal(candidateFromPage({ ...page, title: "Portrait person" }, "forest"), null);
+  assert.equal(candidateFromPage({ ...page, license: "by" }, "forest"), null);
 });
 
 test("rotation excludes previously used image IDs and prefers fresh creators", () => {

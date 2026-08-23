@@ -1,10 +1,10 @@
 {
   "status": "dynamic",
-  "source": "Wikimedia Commons",
+  "source": "Openverse",
   "allowedLicenses": [
-    "CC0 1.0 Universal Public Domain Dedication"
+    "cc0"
   ],
-  "apiUrl": "https://commons.wikimedia.org/w/api.php",
+  "apiUrl": "https://api.openverse.org/v1/images/",
   "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
   "searchQueries": [
     "forest path nature landscape",
@@ -23,5 +23,5 @@
     "requireSourcePageMetadata": true,
     "requireSha256": true
   },
-  "credits": "Each run downloads fresh CC0 1.0 visuals from Wikimedia Commons. The current run's creator, source page, license, and SHA-256 records are written to .runtime/current-assets.json and included in the YouTube description."
+  "credits": "Each run downloads fresh CC0 visuals from Openverse. The current run's creator, provider, source page, license, and SHA-256 records are written to .runtime/current-assets.json and included in the YouTube description."
 }

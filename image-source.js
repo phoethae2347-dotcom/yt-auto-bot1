@@ -10,9 +10,10 @@ const POLICY_PATH = path.join(ROOT, "asset-licenses.json");
 const HISTORY_PATH = path.join(ROOT, "state", "image-history.json");
 const RUNTIME_DIR = path.join(ROOT, ".runtime");
 const RUNTIME_IMAGE_DIR = path.join(RUNTIME_DIR, "images");
-const API_URL = process.env.WIKIMEDIA_API_URL || "https://commons.wikimedia.org/w/api.php";
-const USER_AGENT = process.env.WIKIMEDIA_USER_AGENT || "yt-auto-bot1/1.0 (licensed image downloader; contact channel owner)";
+const API_URL = process.env.OPENVERSE_API_URL || "https://api.openverse.org/v1/images/";
+const USER_AGENT = process.env.OPENVERSE_USER_AGENT || "yt-auto-bot1/1.0 (open-license image downloader; contact repository owner)";
 const CC0_LICENSE = "CC0 1.0 Universal Public Domain Dedication";
+const OPENVERSE_LICENSE = "cc0";
 
 function ensureDir(directory) {
   fs.mkdirSync(directory, { recursive: true });
@@ -33,9 +34,9 @@ function loadImageSourcePolicy() {
   if (!fs.existsSync(POLICY_PATH)) throw new Error("asset-licenses.json is missing");
   const policy = JSON.parse(fs.readFileSync(POLICY_PATH, "utf8"));
   if (policy.status !== "dynamic") throw new Error("asset-licenses.json must use dynamic source mode");
-  if (policy.source !== "Wikimedia Commons") throw new Error("Only Wikimedia Commons source mode is enabled");
-  if (!policy.allowedLicenses?.includes(CC0_LICENSE)) {
-    throw new Error("Dynamic source policy must allow CC0 only");
+  if (policy.source !== "Openverse") throw new Error("Only Openverse source mode is enabled");
+  if (!policy.allowedLicenses?.includes(OPENVERSE_LICENSE)) {
+    throw new Error("Dynamic source policy must allow Openverse CC0 only");
   }
   if (!Array.isArray(policy.searchQueries) || policy.searchQueries.length < 4) {
     throw new Error("Dynamic source policy needs at least four search queries");
@@ -84,32 +85,31 @@ function cleanDownloadUrl(value) {
 }
 
 function candidateFromPage(page, query) {
-  const info = page.imageinfo?.[0];
-  if (!info || !String(info.mime || "").startsWith("image/")) return null;
-
   const title = page.title || "";
   const lowerTitle = title.toLowerCase();
   const excludedWords = ["portrait", "selfie", "person", "people", "face", "model", "wedding", "private", "nude"];
   if (excludedWords.some(word => lowerTitle.includes(word))) return null;
 
-  const license = getMeta(info, "LicenseShortName");
-  if (license.toLowerCase() !== "cc0") return null;
-  const downloadUrl = info.thumburl || info.url;
-  if (!downloadUrl) return null;
-  if (!info.width || !info.height || info.width < 640 || info.height < 480) return null;
+  if (String(page.license || "").toLowerCase() !== OPENVERSE_LICENSE) return null;
+  const downloadUrl = page.thumbnail || page.url;
+  const sourceUrl = page.foreign_landing_url || page.source_url;
+  if (!downloadUrl || !sourceUrl || !page.id) return null;
+  if (!page.width || !page.height || page.width < 640 || page.height < 480) return null;
 
   return {
-    id: String(page.pageid),
+    id: `openverse:${page.id}`,
     title,
-    source: "Wikimedia Commons",
-    sourceUrl: `https://commons.wikimedia.org/wiki/${encodeURIComponent(title.replace(/ /g, "_"))}`,
+    source: "Openverse",
+    provider: page.source || page.provider || "unknown",
+    sourceUrl,
     downloadUrl: cleanDownloadUrl(downloadUrl),
-    originalUrl: info.url,
+    originalUrl: page.url,
     license: CC0_LICENSE,
-    licenseUrl: "https://creativecommons.org/publicdomain/zero/1.0/",
-    creator: getMeta(info, "Artist") || "Unknown creator",
-    width: info.width,
-    height: info.height,
+    licenseKey: OPENVERSE_LICENSE,
+    licenseUrl: page.license_url || "https://creativecommons.org/publicdomain/zero/1.0/",
+    creator: page.creator || "Unknown creator",
+    width: page.width,
+    height: page.height,
     query,
   };
 }
@@ -134,25 +134,22 @@ async function requestWithBackoff(request, label, maxAttempts = 4) {
 async function searchCandidates(query) {
   const response = await requestWithBackoff(() => axios.get(API_URL, {
     params: {
-      action: "query",
-      generator: "search",
-      gsrsearch: `${query} CC0`,
-      gsrnamespace: 6,
-      gsrlimit: 50,
-      prop: "imageinfo",
-      iiprop: "url|extmetadata|mime|size",
-      iiurlwidth: 1280,
-      format: "json",
-      maxlag: 1,
+      q: query,
+      license: OPENVERSE_LICENSE,
+      image_type: "photo",
+      mature: false,
+      filter_dead: true,
+      page_size: 20,
+      page: 1,
     },
     headers: {
       "User-Agent": USER_AGENT,
       "Accept-Encoding": "gzip",
     },
     timeout: 30000,
-  }), `Commons API search: ${query}`);
+  }), `Openverse API search: ${query}`);
 
-  return Object.values(response.data?.query?.pages || {})
+  return (response.data?.results || [])
     .map(page => candidateFromPage(page, query))
     .filter(Boolean);
 }

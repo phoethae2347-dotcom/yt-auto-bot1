@@ -12,9 +12,9 @@ YouTube monetization review expects original and authentic content and may rejec
 
 ## Asset rights gate
 
-The old bundled `images/` and `music/` folders were removed. Every run now queries Wikimedia Commons and downloads four fresh CC0 candidates into the ignored `.runtime/images/` directory. These files are not committed as a reusable image pool. The current run's source page, download URL, creator field, license URL, and SHA-256 hash are recorded in `.runtime/current-assets.json` and included in the YouTube description.
+The old bundled `images/` and `music/` folders were removed. Every run now queries Openverse and downloads four fresh CC0 candidates into the ignored `.runtime/images/` directory. These files are not committed as a reusable image pool. The current run's source page, download URL, creator field, license URL, and SHA-256 hash are recorded in `.runtime/current-assets.json` and included in the YouTube description.
 
-Wikimedia page IDs are stored in `state/image-history.json`, and the GitHub Actions workflow restores/saves that file through the Actions cache. A later run excludes page IDs already used by earlier runs, and selection prefers different creators within a video. If the API is unavailable or it cannot find enough new verified candidates, the run stops; it does not fall back to an old image or an unverified source. Background music is currently disabled, so the video uses narration-only audio.
+Openverse result IDs are stored in `state/image-history.json`, and the GitHub Actions workflow restores/saves that file through the Actions cache. A later run excludes result IDs already used by earlier runs, and selection prefers different creators within a video. If the API is unavailable or it cannot find enough new verified candidates, the run stops; it does not fall back to an old image or an unverified source. Background music is currently disabled, so the video uses narration-only audio.
 
 CC0 addresses copyright licensing, but the channel owner should still check the source page and final edit for privacy, publicity/personality rights, trademarks, logos, private locations, misleading endorsement, and other local-law restrictions. Do not treat an asset as risk-free merely because it is found online or appears to be AI-generated.
 
@@ -46,7 +46,7 @@ The workflow passes conservative defaults. Override these only after review:
 
 ## Local checks
 
-Install dependencies with `npm ci`, install FFmpeg and `edge-tts`, and run `npm test`. A real run requires valid Google credentials, network access to Wikimedia Commons, and the dynamic source policy in `asset-licenses.json`. Keep generated `credentials.json`, `token.json`, `.runtime/`, `voice/`, and `output/` files out of version control.
+Install dependencies with `npm ci`, install FFmpeg and `edge-tts`, and run `npm test`. A preview run that never calls YouTube uses `SKIP_UPLOAD=true node index.js`; it produces a local MP4 in `output/`. A real run requires valid Google credentials, network access to Openverse, and the dynamic source policy in `asset-licenses.json`. Keep generated `credentials.json`, `token.json`, `.runtime/`, `voice/`, and `output/` files out of version control.
 
 ## Content quality guidance
 

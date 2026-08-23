@@ -314,16 +314,20 @@ async function run() {
     const description = buildDescription(script, assets, brief);
     console.log("Title:", title);
 
-    const privacyStatus = process.env.UPLOAD_PRIVACY_STATUS || "private";
-    await uploadVideo(out, {
-      title,
-      description,
-      tags: ["relationships", "self-worth", "emotional wellbeing"],
-      privacyStatus,
-      containsSyntheticMedia: true,
-    });
-
-    await notify(`Upload complete (${privacyStatus}).\nTitle: ${title}`);
+    if (process.env.SKIP_UPLOAD === "true") {
+      console.log("SKIP_UPLOAD=true; keeping local preview without YouTube upload");
+      await notify(`Preview ready (not uploaded).\nTitle: ${title}`);
+    } else {
+      const privacyStatus = process.env.UPLOAD_PRIVACY_STATUS || "private";
+      await uploadVideo(out, {
+        title,
+        description,
+        tags: ["relationships", "self-worth", "emotional wellbeing"],
+        privacyStatus,
+        containsSyntheticMedia: true,
+      });
+      await notify(`Upload complete (${privacyStatus}).\nTitle: ${title}`);
+    }
     console.log("===== DONE =====");
 
   } catch (e) {
